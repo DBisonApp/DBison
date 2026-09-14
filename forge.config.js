@@ -96,7 +96,8 @@ export const makers = [
   },
   {
     name: '@electron-forge/maker-rpm',
-    config: {},
+    // rpmbuild refuses a spec without a License tag; this is closed source.
+    config: { options: { license: 'Proprietary' } },
   },
 ];
 export const plugins = [

@@ -4,6 +4,7 @@
   "private": true,
   "description": "DBison is a desktop application for managing and organizing your database connections and queries.",
   "author": "Jan Vorisek <jan@vorisek.me>",
+  "license": "UNLICENSED",
   "main": "./main.js",
   "version": "0.1.0",
   "updates": {
