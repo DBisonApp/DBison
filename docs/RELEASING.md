@@ -74,14 +74,37 @@ for another platform is not supported.
 
 What lands in the bucket, per platform:
 
-- **Windows** (`win32/x64/`): `dbison-X.Y.Z Setup.exe` for new installs, plus
+- **Windows** (`win32/x64/`): `DBison-X.Y.Z Setup.exe` for new installs, plus
   `RELEASES` and the `-full.nupkg` that Squirrel updates from.
 - **macOS** (`darwin/arm64/`): the zip and `RELEASES.json`, which lists every
   version published so far with the newest as current. The maker reads the
   existing manifest from the bucket while building, so publish macOS versions
   in order. `macos-latest` builds arm64 only; Intel Macs need an x64 job.
-- **Linux** (`linux/x64/`): `.deb` and `.rpm` for manual download. Electron's
-  updater does not support Linux.
+- **Linux** (`linux/x64/`): `.deb`, `.rpm` and `latest-linux.yml`, which the
+  `postMake` hook in `forge.config.js` writes with each package's sha512 and
+  size.
+
+### How Linux updates work
+
+Electron's built-in updater has no Linux side, so `electron/linux-updater.js`
+uses `electron-updater` instead (Windows and macOS stay on
+`update-electron-app`):
+
+1. At start it asks `dpkg -S` / `rpm -qf` whether a package manager owns the
+   running binary. A copy run from an unpacked folder does not update.
+2. It writes `app-update.yml` (feed URL and cache folder) into the user data
+   folder, because Forge does not package the one electron-builder would.
+3. Hourly it reads `latest-linux.yml`, downloads the matching `.deb` or `.rpm`
+   in the background and verifies its checksum.
+4. It asks to restart. Installing runs `dpkg -i` or `dnf`/`zypper` through
+   `pkexec`, so the system asks for the user's password, then DBison relaunches.
+   Nothing installs on quit without that choice.
+5. Where no graphical password prompt exists (WSL, bare window managers) the
+   install fails and DBison shows the `sudo apt install …` / `sudo rpm -U …`
+   command for the downloaded file instead.
+
+Packages are not GPG-signed, so the updater's trust rests on HTTPS to the
+bucket and the checksum in the manifest.
 
 Uploading the same version again overwrites its files. To pull a bad release,
 publish a higher version; deleting files only stops new downloads.

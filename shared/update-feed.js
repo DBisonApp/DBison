@@ -36,3 +36,25 @@ export function updateFeed(pkg) {
     baseUrl: (platform, arch) => `${publicUrl}/${folder}/${platform}/${arch}`,
   };
 }
+
+// electron-updater asks for latest-linux.yml on x64 and latest-linux-<arch>.yml
+// on every other architecture.
+export function linuxChannelFile(arch) {
+  return arch === 'x64' ? 'latest-linux.yml' : `latest-linux-${arch}.yml`;
+}
+
+// The manifest electron-updater reads before downloading a Linux update.
+// `files` are names relative to the feed directory, each with its base64
+// sha512 and size; the updater downloads the one whose extension matches how
+// the running copy was installed (.deb or .rpm) and verifies the checksum.
+export function linuxUpdateManifest({ version, releaseDate, files }) {
+  const quote = (value) => `'${String(value).replace(/'/g, "''")}'`;
+
+  return [
+    `version: ${quote(version)}`,
+    'files:',
+    ...files.flatMap((file) => [`  - url: ${quote(file.url)}`, `    sha512: ${quote(file.sha512)}`, `    size: ${file.size}`]),
+    `releaseDate: ${quote(releaseDate)}`,
+    '',
+  ].join('\n');
+}

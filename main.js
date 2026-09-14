@@ -9,6 +9,7 @@ import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
 
 import { isDirty, registerDatabaseIpc } from './electron/ipc.js';
 import { appearance, loadAppearance } from './electron/appearance-store.js';
+import { startLinuxAutoUpdate } from './electron/linux-updater.js';
 import { describeError, installProcessHandlers, log, logPath } from './electron/log.js';
 import { updateFeed } from './shared/update-feed.js';
 
@@ -16,6 +17,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const require = createRequire(import.meta.url);
+
+// The Windows installer and updater run the app with --squirrel-install,
+// -updated, -uninstall or -obsolete. This creates or removes the Start Menu and
+// desktop shortcuts and quits, so nothing else may start on those runs.
+const handledSquirrelEvent = process.platform === 'win32' && require('electron-squirrel-startup');
+
+// productName (DBison) names the app, but the data folder keeps the name it has
+// always had: on Linux ~/.config/DBison would be a new, empty folder beside the
+// ~/.config/dbison that holds every saved connection.
+app.setPath('userData', path.join(app.getPath('appData'), 'dbison'));
+
+// Squirrel's shortcuts carry this id; the running app has to match it for
+// taskbar pins and notifications to group with the shortcut.
+if (process.platform === 'win32') app.setAppUserModelId('com.squirrel.dbison.dbison');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.NUXT_PORT ?? 3000);
@@ -162,6 +177,10 @@ async function createWindow() {
         // is the brightest thing the app ever shows.
         backgroundColor: appearance().background,
 
+        // Windows and macOS take the icon from the exe and the app bundle; a
+        // Linux window has to be handed one.
+        ...(process.platform === 'linux' ? { icon: path.join(__dirname, 'assets', 'icon.png') } : {}),
+
         ...titleBarOptions(),
 
         webPreferences: {
@@ -249,6 +268,13 @@ async function createWindow() {
 function startAutoUpdate() {
     if (!app.isPackaged) return;
 
+    // Squirrel still holds its lock for a moment after installing, and a check
+    // in that window fails; the next start checks instead.
+    if (process.argv.includes('--squirrel-firstrun')) {
+        log('info', 'Auto-update skipped on the first run after install');
+        return;
+    }
+
     let feed = null;
     try {
         feed = updateFeed(require('./package.json'));
@@ -264,16 +290,27 @@ function startAutoUpdate() {
     // the app log under the level it chose, so update trouble sits with the rest.
     const line = (args) => `[update] ${args.map((a) => (typeof a === 'string' ? a : a instanceof Error ? a.message : JSON.stringify(a))).join(' ')}`;
 
+    const logger = {
+        log: (...args) => log('info', line(args)),
+        info: (...args) => log('info', line(args)),
+        warn: (...args) => log('warn', line(args)),
+        error: (...args) => log('error', line(args)),
+    };
+
+    // Squirrel covers Windows and macOS; Linux packages go through
+    // electron-updater, see electron/linux-updater.js.
+    if (process.platform === 'linux') {
+        startLinuxAutoUpdate(feed.baseUrl('linux', process.arch), logger).catch((error) => {
+            log('warn', `Auto-update could not start: ${error?.message ?? error}`, describeError(error));
+        });
+        return;
+    }
+
     try {
         updateElectronApp({
             updateSource: { type: UpdateSourceType.StaticStorage, baseUrl: feed.baseUrl(process.platform, process.arch) },
             updateInterval: '1 hour',
-            logger: {
-                log: (...args) => log('info', line(args)),
-                info: (...args) => log('info', line(args)),
-                warn: (...args) => log('warn', line(args)),
-                error: (...args) => log('error', line(args)),
-            },
+            logger,
         });
     } catch (error) {
         log('warn', `Auto-update could not start: ${error?.message ?? error}`, describeError(error));
@@ -282,6 +319,8 @@ function startAutoUpdate() {
 
 // Creates the window when electron app is ready
 app.whenReady().then(async () => {
+    if (handledSquirrelEvent) return;
+
     // Before the first window: it decides the colours that window opens on.
     await loadAppearance();
 

@@ -1,5 +1,6 @@
 {
   "name": "dbison",
+  "productName": "DBison",
   "type": "module",
   "private": true,
   "description": "DBison is a desktop application for managing and organizing your database connections and queries.",
@@ -44,6 +45,7 @@
     "@vue-flow/minimap": "^1.5.4",
     "dockview-vue": "^8.3.0",
     "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.8.9",
     "eslint": "^10.10.0",
     "modern-monaco": "^0.4.2",
     "mysql2": "^3.24.4",
