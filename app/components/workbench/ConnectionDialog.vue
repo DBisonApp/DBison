@@ -529,7 +529,7 @@ const fieldClass = 'field py-1.5'
       <p v-if="!isFileBased && !canStoreSecrets" class="flex items-start gap-2 text-warning sm:col-span-2">
         <AppIcon name="warning" />
         <span>
-          This machine offers no OS keychain, so the password is kept for this session only.
+          This machine offers no OS keychain, so the password is kept in memory until DBison quits and has to be entered again after a restart.
         </span>
       </p>
 

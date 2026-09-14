@@ -12,14 +12,16 @@ const FORMAT_VERSION = 1
  *
  * Passwords never sit in the JSON in clear text: they go through Electron's
  * `safeStorage`, which is backed by the OS keychain (DPAPI on Windows, Keychain
- * on macOS, libsecret on Linux). Where the OS refuses to provide encryption the
- * password is dropped rather than written in the clear, and the user is asked
- * for it per session.
+ * on macOS, libsecret on Linux). Where the OS refuses to provide encryption (a
+ * Linux session without a keyring, WSL) the password is never written at all:
+ * it is kept in memory until the app quits and has to be entered again after.
  */
 export class ConnectionStore {
   #file
   /** @type {Map<string, object>} id -> profile including its encrypted secret */
   #profiles = new Map()
+  /** @type {Map<string, { secret?: string, sshSecret?: string }>} id -> plain secrets held for this run only, without a keychain */
+  #session = new Map()
 
   constructor(directory = app.getPath('userData')) {
     this.#file = path.join(directory, FILE_NAME)
@@ -61,17 +63,22 @@ export class ConnectionStore {
 
   /** Profiles as the renderer sees them: no secrets, encrypted or otherwise. */
   list() {
-    return [...this.#profiles.values()].map(({ secret, sshSecret, ...profile }) => ({
+    return [...this.#profiles.values()].map((profile) => this.#visible(profile))
+  }
+
+  #visible({ secret, sshSecret, ...profile }) {
+    const session = this.#session.get(profile.id)
+    return {
       ...profile,
-      hasStoredPassword: Boolean(secret),
-      hasStoredSshSecret: Boolean(sshSecret),
-    }))
+      hasStoredPassword: Boolean(secret ?? session?.secret),
+      hasStoredSshSecret: Boolean(sshSecret ?? session?.sshSecret),
+    }
   }
 
   /** The decrypted SSH password or passphrase, or undefined when none is stored. */
   sshSecretFor(id) {
     const stored = this.#profiles.get(id)?.sshSecret
-    if (!stored) return undefined
+    if (!stored) return this.#session.get(id)?.sshSecret
 
     try {
       return safeStorage.decryptString(Buffer.from(stored, 'base64'))
@@ -88,7 +95,7 @@ export class ConnectionStore {
   /** The decrypted password for a profile, or undefined when none is stored. */
   secretFor(id) {
     const stored = this.#profiles.get(id)?.secret
-    if (!stored) return undefined
+    if (!stored) return this.#session.get(id)?.secret
 
     try {
       return safeStorage.decryptString(Buffer.from(stored, 'base64'))
@@ -141,33 +148,51 @@ export class ConnectionStore {
       secret: existing?.secret,
     }
 
+    // A secret that cannot be encrypted goes to the session copy instead of
+    // the file; one that can replaces whatever the session held.
+    const session = { ...this.#session.get(id) }
+
     if (input.password === '') {
       profile.secret = undefined
+      delete session.secret
     }
     else if (typeof input.password === 'string') {
-      profile.secret = safeStorage.isEncryptionAvailable()
-        ? safeStorage.encryptString(input.password).toString('base64')
-        : undefined
+      if (safeStorage.isEncryptionAvailable()) {
+        profile.secret = safeStorage.encryptString(input.password).toString('base64')
+        delete session.secret
+      }
+      else {
+        profile.secret = undefined
+        session.secret = input.password
+      }
     }
 
     if (input.sshPassword === '' || !profile.ssh) {
       profile.sshSecret = undefined
+      delete session.sshSecret
     }
     else if (typeof input.sshPassword === 'string') {
-      profile.sshSecret = safeStorage.isEncryptionAvailable()
-        ? safeStorage.encryptString(input.sshPassword).toString('base64')
-        : undefined
+      if (safeStorage.isEncryptionAvailable()) {
+        profile.sshSecret = safeStorage.encryptString(input.sshPassword).toString('base64')
+        delete session.sshSecret
+      }
+      else {
+        profile.sshSecret = undefined
+        session.sshSecret = input.sshPassword
+      }
     }
 
     this.#profiles.set(id, profile)
+    if (session.secret === undefined && session.sshSecret === undefined) this.#session.delete(id)
+    else this.#session.set(id, session)
     await this.#persist()
 
-    const { secret, sshSecret, ...visible } = profile
-    return { ...visible, hasStoredPassword: Boolean(secret), hasStoredSshSecret: Boolean(sshSecret) }
+    return this.#visible(profile)
   }
 
   async delete(id) {
     this.#profiles.delete(id)
+    this.#session.delete(id)
     await this.#persist()
   }
 
