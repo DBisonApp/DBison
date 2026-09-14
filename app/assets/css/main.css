@@ -1,0 +1,848 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+ * Semantic palette — "prairie dusk".
+ *
+ * These are plain CSS variables (not `@theme` values) so they can be swapped at
+ * runtime by flipping `data-theme` on <html>. `@theme inline` below re-exports
+ * them as Tailwind tokens, which makes `bg-surface`, `text-muted`, ... follow
+ * the active theme without any `dark:` variants.
+ *
+ * The neutrals are one hue family (a cool indigo-slate) rather than the mix of
+ * navy and grey-purple they used to be, so surfaces stacked on each other read
+ * as depth instead of as different materials. dockview is retinted from the
+ * same tokens further down, so the docking chrome is part of the same surface.
+ * ------------------------------------------------------------------------- */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --app-bg: #0d1120;
+  --app-bg-sunken: #080b14;
+  --app-surface: #141a2c;
+  --app-surface-raised: #1d2540;
+  --app-border: #222b45;
+  --app-border-strong: #33406a;
+
+  --app-text: #e8ecf6;
+  --app-text-muted: #98a2c0;
+  --app-text-faint: #66708e;
+
+  --app-accent: #8b5cf6;
+  --app-accent-bright: #a78bfa;
+  --app-accent-alt: #e879f9;
+  --app-accent-text: #ffffff;
+  /* The accent at low opacity, for washes that must not lighten the surface. */
+  --app-accent-soft: rgb(139 92 246 / 0.16);
+  --app-accent-line: rgb(139 92 246 / 0.42);
+
+  /* The one warm note in the palette. Reserved for the bison mark, so the
+   * brand has a colour nothing functional ever borrows. */
+  --app-brand-warm: #e8a33d;
+
+  --app-success: #34d399;
+  --app-warning: #f5b14c;
+  --app-danger: #fb7185;
+  --app-info: #60a5fa;
+
+  /* Column type hints in the result grid. */
+  --app-type-number: #7dd3fc;
+  --app-type-string: #d7deef;
+  --app-type-bool: #c4b5fd;
+  --app-type-null: #5b6482;
+
+  --app-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --app-shadow-md: 0 4px 14px -2px rgb(0 0 0 / 0.5);
+  --app-shadow-lg: 0 18px 48px -12px rgb(0 0 0 / 0.7), 0 2px 8px rgb(0 0 0 / 0.4);
+  --app-glow: 0 0 0 1px var(--app-accent-line), 0 6px 20px -6px rgb(139 92 246 / 0.55);
+
+  /* A hairline of light along the top of raised chrome. Reads as a bevel on
+   * dark, and would read as grime on light — hence the per-theme value. */
+  --app-bevel: rgb(255 255 255 / 0.06);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --app-bg: #ffffff;
+  --app-bg-sunken: #eceff7;
+  --app-surface: #f7f8fc;
+  --app-surface-raised: #e7ecf8;
+  --app-border: #dbe0ee;
+  --app-border-strong: #b9c2da;
+
+  --app-text: #171b2b;
+  --app-text-muted: #565f7e;
+  --app-text-faint: #8892ae;
+
+  --app-accent: #6d3bf0;
+  --app-accent-bright: #5a24e8;
+  --app-accent-alt: #b14fe0;
+  --app-accent-text: #ffffff;
+  --app-accent-soft: rgb(109 59 240 / 0.12);
+  --app-accent-line: rgb(109 59 240 / 0.35);
+
+  --app-brand-warm: #b9701a;
+
+  --app-success: #12805a;
+  --app-warning: #9a6100;
+  --app-danger: #d02545;
+  --app-info: #0b64d0;
+
+  --app-type-number: #0550ae;
+  --app-type-string: #2f3752;
+  --app-type-bool: #6d3bf0;
+  --app-type-null: #99a1ba;
+
+  --app-shadow-sm: 0 1px 2px rgb(23 27 43 / 0.08);
+  --app-shadow-md: 0 4px 14px -2px rgb(23 27 43 / 0.12);
+  --app-shadow-lg: 0 18px 48px -12px rgb(23 27 43 / 0.24), 0 2px 8px rgb(23 27 43 / 0.08);
+  --app-glow: 0 0 0 1px var(--app-accent-line), 0 6px 20px -6px rgb(109 59 240 / 0.35);
+
+  --app-bevel: rgb(255 255 255 / 0.9);
+}
+
+/* Theme-independent derivations. */
+:root {
+  --app-accent-gradient: linear-gradient(135deg, var(--app-accent) 0%, var(--app-accent-alt) 100%);
+  --app-radius: 6px;
+  --app-radius-lg: 10px;
+}
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", "Consolas", monospace;
+
+  --color-bg: var(--app-bg);
+  --color-sunken: var(--app-bg-sunken);
+  --color-surface: var(--app-surface);
+  --color-raised: var(--app-surface-raised);
+  --color-edge: var(--app-border);
+  --color-edge-strong: var(--app-border-strong);
+
+  --color-content: var(--app-text);
+  --color-muted: var(--app-text-muted);
+  --color-faint: var(--app-text-faint);
+
+  --color-accent: var(--app-accent);
+  --color-accent-soft: var(--app-accent-soft);
+  --color-accent-line: var(--app-accent-line);
+  --color-accent-bright: var(--app-accent-bright);
+  --color-accent-alt: var(--app-accent-alt);
+  --color-on-accent: var(--app-accent-text);
+  --color-brand-warm: var(--app-brand-warm);
+
+  --color-success: var(--app-success);
+  --color-warning: var(--app-warning);
+  --color-danger: var(--app-danger);
+  --color-info: var(--app-info);
+
+  --color-type-number: var(--app-type-number);
+  --color-type-string: var(--app-type-string);
+  --color-type-bool: var(--app-type-bool);
+  --color-type-null: var(--app-type-null);
+
+  --shadow-app-sm: var(--app-shadow-sm);
+  --shadow-app-md: var(--app-shadow-md);
+  --shadow-app-lg: var(--app-shadow-lg);
+  --shadow-glow: var(--app-glow);
+}
+
+/* ---------------------------------------------------------------------------
+ * Desktop shell base.
+ * ------------------------------------------------------------------------- */
+
+html,
+body,
+#__nuxt {
+  height: 100%;
+}
+
+body {
+  overflow: hidden; /* the shell manages its own scroll regions */
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+
+  /* Text is selectable only where it is content, not chrome. */
+  user-select: none;
+  cursor: default;
+}
+
+input,
+textarea,
+[contenteditable],
+.selectable {
+  user-select: text;
+}
+
+/* One focus treatment for the whole app, so a keyboard user sees the same ring
+ * on a menu item, a grid cell and a dialog button. */
+:focus-visible {
+  outline: 2px solid var(--app-accent-bright);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Scrollbars, matched to the palette instead of the platform default.
+ * ------------------------------------------------------------------------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--app-border-strong);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--app-text-faint);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/*
+ * The dropdown a <select> opens is drawn by the browser, not by the page, and
+ * it takes its colours from the control rather than from the theme: a select
+ * left transparent opens a list painted on the default white, and our own light
+ * text then lands on it invisibly. Naming both ends here keeps every dropdown
+ * in the app legible in either theme without each one restating it.
+ */
+option {
+  background-color: var(--app-bg);
+  color: var(--app-text);
+}
+
+/* ---------------------------------------------------------------------------
+ * Shared component classes.
+ *
+ * These live here rather than as repeated utility strings because they are the
+ * app's vocabulary: every button in the shell is one of four kinds, and a fifth
+ * one appearing is a decision, not a typo. Declared in the `components` layer so
+ * a utility in the template still overrides them.
+ * ------------------------------------------------------------------------- */
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: var(--app-radius);
+    padding: 0.25rem 0.625rem;
+    white-space: nowrap;
+    transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease,
+      border-color 120ms ease, filter 120ms ease;
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    filter: saturate(0.6);
+  }
+
+  /* The one place the signature gradient appears on a control. Kept to primary
+   * actions so it still means something when it shows up. */
+  .btn-accent {
+    background-image: var(--app-accent-gradient);
+    color: var(--app-accent-text);
+    box-shadow: var(--app-shadow-sm), inset 0 1px 0 rgb(255 255 255 / 0.18);
+  }
+
+  .btn-accent:not(:disabled):hover {
+    filter: brightness(1.12);
+    box-shadow: var(--app-glow), inset 0 1px 0 rgb(255 255 255 / 0.18);
+  }
+
+  .btn-danger {
+    background-color: var(--app-danger);
+    color: #fff;
+    box-shadow: var(--app-shadow-sm), inset 0 1px 0 rgb(255 255 255 / 0.18);
+  }
+
+  .btn-danger:not(:disabled):hover {
+    filter: brightness(1.1);
+  }
+
+  .btn-outline {
+    border: 1px solid var(--app-border-strong);
+    color: var(--app-text-muted);
+    background-color: transparent;
+  }
+
+  .btn-outline:not(:disabled):hover {
+    border-color: var(--app-accent-line);
+    background-color: var(--app-accent-soft);
+    color: var(--app-text);
+  }
+
+  .btn-ghost {
+    color: var(--app-text-muted);
+  }
+
+  .btn-ghost:not(:disabled):hover {
+    background-color: var(--app-surface-raised);
+    color: var(--app-text);
+  }
+
+  /* A ghost button that is a toggle, in its on state. */
+  .btn-ghost[data-active="true"] {
+    background-color: var(--app-accent-soft);
+    color: var(--app-accent-bright);
+  }
+
+  /* Square icon-only variant of `.btn-ghost`. */
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--app-radius);
+    padding: 0.375rem;
+    color: var(--app-text-muted);
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+
+  .btn-icon:not(:disabled):hover {
+    background-color: var(--app-surface-raised);
+    color: var(--app-text);
+  }
+
+  .btn-icon:disabled {
+    opacity: 0.4;
+  }
+
+  /* A keycap. Used for shortcut hints, which is most of what the welcome
+   * screen and the menus have to say. */
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid var(--app-border-strong);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background-color: var(--app-surface);
+    padding: 0.0625rem 0.375rem;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--app-text-muted);
+  }
+
+  /* A small inline label: PK, a driver badge, a row count. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 999px;
+    padding: 0.0625rem 0.4375rem;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+    background-color: var(--app-surface-raised);
+    color: var(--app-text-muted);
+  }
+
+  /* Every text input and select in the app. */
+  .field {
+    width: 100%;
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius);
+    background-color: var(--app-bg);
+    padding: 0.25rem 0.5rem;
+    color: var(--app-text);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+
+  .field::placeholder {
+    color: var(--app-text-faint);
+  }
+
+  .field:focus {
+    outline: none;
+    border-color: var(--app-accent);
+    box-shadow: 0 0 0 3px var(--app-accent-soft);
+  }
+
+  .field:disabled {
+    opacity: 0.5;
+  }
+
+  /* A popover / menu surface. */
+  .popover {
+    border: 1px solid var(--app-border-strong);
+    border-radius: var(--app-radius-lg);
+    background-color: var(--app-surface);
+    box-shadow: var(--app-shadow-lg);
+    background-image: linear-gradient(var(--app-bevel), transparent 1px);
+  }
+
+  /*
+   * One selectable row inside a menu panel.
+   *
+   * Reka moves a `data-highlighted` attribute with the pointer *and* with the
+   * arrow keys, so unlike a `:hover` rule this lights the same row whichever
+   * one the user is driving with.
+   */
+  .menu-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.625rem;
+    border-radius: var(--app-radius);
+    padding: 0.375rem 0.5rem;
+    text-align: left;
+    color: var(--app-text-muted);
+    cursor: default;
+    user-select: none;
+    outline: none;
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+
+  .menu-row[data-highlighted] {
+    background-color: var(--app-accent-soft);
+    color: var(--app-text);
+  }
+
+  .menu-row[data-disabled] {
+    color: var(--app-text-faint);
+    pointer-events: none;
+  }
+
+  /*
+   * A Reka overlay panel: the `.popover` surface, plus the entrance the
+   * primitives drive through `data-state`.
+   *
+   * The panel slides out of the edge it is anchored to, so a menu that had to
+   * flip up to fit on screen animates upward and the movement still reads as
+   * "this came from the trigger". `data-side` is what Reka reports the flip on.
+   *
+   * There is deliberately no exit animation. Reka keeps a closing panel mounted
+   * until its animation ends, and picks which `animationend` to wait for by
+   * sampling the computed `animation-name` as the state flips — which catches
+   * the entrance name, so an exit running under a different name is never
+   * recognised and the panel is never unmounted. Every menu ever opened then
+   * stays in the document, invisible and stacking up. Closing instantly is what
+   * a native menu does anyway; if you add a fade here, re-run
+   * `smoke-context.mjs` and check the leftover count is still zero.
+   */
+  .popover-panel {
+    --app-pop-y: -4px;
+  }
+
+  .popover-panel[data-side="top"] {
+    --app-pop-y: 4px;
+  }
+
+  .popover-panel[data-state="open"] {
+    animation: app-pop-in 120ms ease-out;
+  }
+
+  /* A list row that grows an accent rail on hover, instead of only changing
+   * colour. The rail is what makes a long explorer list scannable: the eye
+   * tracks one moving edge rather than a whole shifting block. */
+  .rail {
+    position: relative;
+  }
+
+  .rail::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 2px;
+    border-radius: 0 2px 2px 0;
+    background-image: var(--app-accent-gradient);
+    transform: scaleY(0);
+    transform-origin: center;
+    transition: transform 140ms ease;
+  }
+
+  .rail:hover::before,
+  .rail[data-active="true"]::before {
+    transform: scaleY(1);
+  }
+
+  /* A sticky section heading that lets content blur past underneath it. */
+  .section-head {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem 0.25rem;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--app-text-faint);
+    background-color: color-mix(in oklab, var(--app-bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  /* The hairline rule that fills the rest of a section heading's row. */
+  .section-head::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background-image: linear-gradient(90deg, var(--app-border), transparent);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Signature effects.
+ * ------------------------------------------------------------------------- */
+
+/* Two soft off-screen lights, for the empty states that carry the brand. Both
+ * are painted on a pseudo-element so the element's own content stays crisp. */
+.app-aurora {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-aurora::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(48% 42% at 20% 8%, color-mix(in oklab, var(--app-accent) 20%, transparent), transparent 72%),
+    radial-gradient(44% 38% at 84% 92%, color-mix(in oklab, var(--app-accent-alt) 14%, transparent), transparent 72%);
+  opacity: 0.4;
+}
+
+/* A faint blueprint grid, so a large empty panel is a surface rather than a
+ * void. Masked to fade out at the edges. */
+.app-grid-field {
+  position: relative;
+}
+
+.app-grid-field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--app-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--app-border) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.35;
+  mask-image: radial-gradient(70% 60% at 50% 50%, #000, transparent 100%);
+}
+
+/* Text painted with the signature gradient. */
+.app-gradient-text {
+  background-image: var(--app-accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* The menu bar doubles as the window's title bar. Electron hides the native one
+ * and paints only the window buttons over the page (main.js), telling us where
+ * they are through `env(titlebar-area-*)`: on Windows and Linux the area stops
+ * short of the buttons on the right, on macOS it starts after the traffic
+ * lights on the left. Outside Electron the fallbacks make it a plain full-width
+ * bar. Anything interactive inside opts back out of the drag region, or the
+ * click would move the window instead of opening the menu. */
+.app-titlebar {
+  -webkit-app-region: drag;
+  box-sizing: border-box;
+  margin-left: env(titlebar-area-x, 0px);
+  width: env(titlebar-area-width, 100%);
+}
+
+.app-titlebar :is(button, [role="menubar"], input, a) {
+  -webkit-app-region: no-drag;
+}
+
+/* A 1px rule that starts at the accent and dissolves — used under the menu bar
+ * and above the status bar, so the chrome is edged rather than boxed. */
+.app-edge-glow {
+  height: 1px;
+  flex-shrink: 0;
+  background-image: linear-gradient(
+    90deg,
+    var(--app-accent-line) 0%,
+    var(--app-border) 28%,
+    var(--app-border) 100%
+  );
+}
+
+/* The statement the last Ctrl+Enter ran: a bar in the editor gutter, so a
+   buffer of a dozen statements still says which one the result belongs to. */
+.sql-ran-line {
+  width: 3px !important;
+  margin-left: 3px;
+  border-radius: 2px;
+  background-color: var(--app-accent);
+  opacity: 0.6;
+}
+
+/* An indeterminate progress sweep, for a statement that is in flight. */
+.app-progress {
+  position: relative;
+  overflow: hidden;
+  background-color: color-mix(in oklab, var(--app-accent) 18%, transparent);
+}
+
+.app-progress::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  width: 35%;
+  background-image: linear-gradient(90deg, transparent, var(--app-accent-bright), transparent);
+  animation: app-sweep 1.1s ease-in-out infinite;
+}
+
+@keyframes app-sweep {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(400%); }
+}
+
+/* A status dot that breathes an expanding ring while something is pending. */
+.app-pulse {
+  position: relative;
+}
+
+.app-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: inherit;
+  animation: app-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes app-pop-in {
+  from { opacity: 0; transform: translateY(var(--app-pop-y, -4px)) scale(0.98); }
+}
+
+@keyframes app-ping {
+  from { transform: scale(1); opacity: 0.7; }
+  to { transform: scale(3); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-progress::after,
+  .app-pulse::after {
+    animation: none;
+  }
+
+  .popover-panel[data-state="open"] {
+    animation: none;
+  }
+
+  .rail::before {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * dockview integration.
+ *
+ * dockview ships its own themes; rather than pick one and live beside it, its
+ * variables are re-pointed at the app tokens. The tab strip then follows
+ * `data-theme` with everything else, and there is one palette in the window
+ * instead of two that happen to be close.
+ * ------------------------------------------------------------------------- */
+
+.dv-dockview {
+  height: 100%;
+
+  --dv-group-view-background-color: var(--app-bg);
+  --dv-tabs-and-actions-container-background-color: var(--app-bg-sunken);
+  --dv-tabs-and-actions-container-height: 34px;
+
+  --dv-activegroup-visiblepanel-tab-background-color: var(--app-bg);
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--app-bg-sunken);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--app-bg);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--app-bg-sunken);
+
+  --dv-activegroup-visiblepanel-tab-color: var(--app-text);
+  --dv-activegroup-hiddenpanel-tab-color: var(--app-text-faint);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--app-text-muted);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--app-text-faint);
+
+  --dv-tab-divider-color: transparent;
+  --dv-separator-border: var(--app-border);
+  --dv-paneview-header-border-color: var(--app-border);
+  --dv-paneview-active-outline-color: var(--app-accent);
+
+  --dv-icon-hover-background-color: var(--app-surface-raised);
+  --dv-drag-over-background-color: color-mix(in oklab, var(--app-accent) 28%, transparent);
+  --dv-edge-dock-indicator-color: var(--app-accent-line);
+  --dv-scrollbar-background-color: var(--app-border-strong);
+  --dv-tabs-container-scrollbar-color: var(--app-border-strong);
+  --dv-floating-box-shadow: var(--app-shadow-lg);
+  --dv-floating-border: 1px solid var(--app-border-strong);
+  --dv-floating-titlebar-background-color: var(--app-surface);
+  --dv-tab-border-radius: 8px 8px 0 0;
+  --dv-border-radius: 8px;
+}
+
+.dv-default-tab,
+.dv-tabs-and-actions-container {
+  font-family: var(--font-sans);
+}
+
+/* The tab strip sits a step below the panel body, so an active tab reads as a
+ * cut-out in it rather than as a box drawn on top. */
+.dv-tabs-and-actions-container {
+  border-bottom: 1px solid var(--app-border);
+}
+
+.dv-tab {
+  position: relative;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.dv-tab .dv-default-tab {
+  padding-inline: 10px;
+}
+
+.dv-tab.dv-inactive-tab:hover {
+  background-color: var(--app-surface) !important;
+  color: var(--app-text);
+}
+
+/* The signature: the focused tab is capped with the accent gradient. It is the
+ * one piece of chrome that says which panel a keystroke will reach. */
+.dv-tab.dv-active-tab::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 2px;
+  background-image: var(--app-accent-gradient);
+}
+
+/* A group that is not focused keeps the cap, dimmed — present enough to find
+ * the last-used tab in each split, quiet enough not to compete. */
+.dv-groupview:not(.dv-active-group) .dv-tab.dv-active-tab::after {
+  opacity: 0.28;
+}
+
+.dv-sash:hover,
+.dv-sash.dv-active {
+  background-color: var(--app-accent-line);
+}
+
+/* The hairline between two split views is a pseudo-element inside the second
+ * view, which dockview puts at z-index 5. A grid's sticky header sits at 20
+ * and a pinned column at 10, so the seam went missing exactly where a table
+ * began. Nothing a panel draws goes above 30; the seam now sits above that,
+ * and popovers are portalled to the body, so nothing is covered in turn. */
+.dv-split-view-container.dv-separator-border .dv-view:not(:first-child)::before {
+  z-index: 40;
+}
+
+/* ---------------------------------------------------------------------------
+ * Vue Flow integration.
+ *
+ * The ER diagram's canvas. As with dockview, the library's variables are
+ * re-pointed at the app tokens so the boxes, lines and minimap follow
+ * `data-theme`. The table boxes themselves are our own component; only the
+ * chrome around them is the library's.
+ * ------------------------------------------------------------------------- */
+
+.erd-flow {
+  --vf-node-bg: var(--app-surface);
+  --vf-node-text: var(--app-text);
+  --vf-connection-path: var(--app-border-strong);
+  --vf-handle: transparent;
+
+  background-color: var(--app-bg-sunken);
+}
+
+.erd-flow .vue-flow__background pattern circle {
+  fill: var(--app-border);
+}
+
+.erd-flow .vue-flow__edge-path {
+  stroke: var(--app-border-strong);
+  stroke-width: 1.5;
+  transition: stroke 120ms ease;
+}
+
+.erd-flow .vue-flow__edge:hover .vue-flow__edge-path,
+.erd-flow .vue-flow__edge.selected .vue-flow__edge-path {
+  stroke: var(--app-accent-bright);
+  stroke-width: 2;
+}
+
+.erd-flow .vue-flow__arrowhead polyline {
+  stroke: var(--app-border-strong);
+  fill: var(--app-border-strong);
+}
+
+.erd-flow .vue-flow__edge:hover .vue-flow__arrowhead polyline,
+.erd-flow .vue-flow__edge.selected .vue-flow__arrowhead polyline {
+  stroke: var(--app-accent-bright);
+  fill: var(--app-accent-bright);
+}
+
+/*
+ * The edge's label names the key. The boxes already say which columns hold a
+ * key and the line says where it goes, so the label only earns its space once
+ * a line is pointed at; drawn always, it lands on top of neighbouring boxes.
+ */
+.erd-flow .vue-flow__edge-textwrapper {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.erd-flow .vue-flow__edge:hover .vue-flow__edge-textwrapper,
+.erd-flow .vue-flow__edge.selected .vue-flow__edge-textwrapper {
+  opacity: 1;
+}
+
+.erd-flow .vue-flow__edge-text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--app-text);
+}
+
+.erd-flow .vue-flow__edge-textbg {
+  fill: var(--app-surface-raised);
+}
+
+.erd-flow .vue-flow__node {
+  font-family: var(--font-sans);
+  font-size: 12px;
+}
+
+.erd-flow .vue-flow__minimap {
+  right: 8px;
+  bottom: 8px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background-color: var(--app-bg);
+  box-shadow: var(--app-shadow-md);
+}
+
+.erd-flow .vue-flow__minimap-mask {
+  fill: var(--app-bg-sunken);
+  fill-opacity: 0.7;
+}

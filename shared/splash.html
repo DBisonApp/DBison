@@ -1,0 +1,200 @@
+<!--
+  The load screen.
+
+  Two moments show it, and they have to be the same picture or the hand-off
+  between them reads as a flicker:
+
+    - the Electron window opens straight onto this file from disk (`main.js`)
+      while the Nuxt server is still coming up, which on a cold dev build is
+      tens of seconds
+    - Nuxt then bakes it into the SPA shell (`spaLoadingTemplate` in
+      nuxt.config) so the same picture keeps standing while the bundle boots
+      and Vue mounts
+
+  So it is one self-contained file: no stylesheet, no image, no font it could
+  be caught waiting for. The palette is a copy of the two themes in main.css
+  rather than a reference to them, because the disk copy has no main.css to
+  reference — the handful of tokens below are the ones the mark and the bar
+  actually use, and they are meant to be kept in step with it. The wordmark's
+  face is inlined the same way: the six glyphs it needs, cut from the Space
+  Grotesk 700 file `@nuxtjs/google-fonts` downloads, so the splash and the
+  title bar set DBISON in the same letters.
+
+  `data-splash-theme` on <html> picks the palette. The Electron copy is handed
+  it as a `?theme=` query (its file:// origin has no localStorage worth
+  reading); the Nuxt copy reads the persisted choice itself, from the same key
+  `useAppTheme` writes.
+-->
+
+<style>
+  /* Space Grotesk 700, subset to D B I N O S (about 1 KB). Regenerate from
+     node_modules/.cache/nuxt-google-fonts/fonts/Space_Grotesk-normal-700-latin.woff2
+     with fonttools if the app's display face changes:
+       pyftsubset <file> --text=DBISON --flavor=woff2 --layout-features= --no-hinting --name-IDs=
+     The family name is private to this file so it can never shadow the real
+     one once main.css arrives. */
+  @font-face {
+    font-family: "DBison Splash Wordmark";
+    font-weight: 700;
+    font-style: normal;
+    src: url("data:font/woff2;base64,d09GMgABAAAAAATQABMAAAAACGAAAARsAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbIBwqP0hWQVJDBmA/U1RBVFgnHgBUL0QRCAqDeINCMIM6ATYCJAMcCxAABCAFgQYHIBvQBiMRwsYBBGlfTPYXCbwh6dNjRFYSGMtcP+sZIXwxIRY6/KyqI16BlXj4fr/Qc99/u5ykhPCDSJLZderYhmXBBUhXgcpUdgfnNNAMgZw+yvuNjb6yCJx1/Q/wzLlnbXV9jc45udROL/PIR+B4Fgr841no35ofXE7/2hj21priIY65bWz7irIwLcGAHsOxaW6wBZgGAnNjhF7RcXstgTYgCaEqBJqe8ozo1WfQKHUZOgBTnFe8JnXWddH0VUs8tgB8GuAhfNa9alvgESEolVQR/Jf5zae+ltQqETkV5PRuvKVC2pnGYWDWSUzxQbzIlw8v0WcgLulhZHHz/7vkLfESAuKvdA7PKYRQF3hIxlPS2rnzVgXUPeQl7wmIiLdQIEWK/aRzR+WLuEfVkIcOJFQuuQTu88C+57x+sqyEhAIPKS4ev0RbXZL10Et/Q43soEEY8vXORYsoPp69TxLHmOsfyL9FvPXInBDRFI5E7AcF3LPnj7xIdOgGaqArmvgedwAZUEhCSOKJZrNrM7e7dv24Fa1KM7rsunaNbZf+eMl3f15m29WrzTGtXTcitl9vNqPQL2xh22SyVWnlCOZX5ArNBc08fef1Xs+N1izrGKts51Wq14aVxtgqVGvLtl+5nunz6ygWqkzyGiBwVUZB6vK1dO9vW/WQZcW+aPlaetFUJsSICL8/NXltH5k1lAOffxKv4KbP5z8MHOQ24C9jnOD9i196D3Gp4DMRcb9tmQvsOL7z0PZDx3fsmP15Z7Lsb05rV/YmHWjMufIcZVufPrePljbupX3MoC4bD+zffXY3to0OZsPnjcF6eFtIqFEfomCp0BfigatF5yiF2JD6pJTJlmNWfNvvmb+9498SfJqmJ7uk2z1hbCWPxmEUxhnHBH/FMYNe96BPsWgirgTMZlN+zGKAQAi8pAZeAR8bZbIl9vmttC3UTcczoyz79UVIKJX5Ygqt0ahViarVigLvZkX0llcooKsFzDUqAKZWxc1ep6bqUghZ2gWYYVnEYIxgTVmB6ZDI6AliYeKXl6Mxc+MSSJP0QZVOgYhOVdD8LDX/aI7DYIp6pMavwPSxeHdcsxH4teThIRYDplqnA3pEPGTf5v6+2TyaikQAv1aHqVQDzs83JyGfNBP6plBKJDpUQh430EdizgTNQLC42z9pQvJfE5dKpl/uxQS5C+6vqXQhDKcyfx9PDyARhvjvekF44+hU8P90L/T48Qc4PGSKuf38xw0L22WC00+eBCuA4KtW0xDGSRBqKdGzXdR7ubnaPzi5fvqkddT9fK4pnk8WJ8QW996QTKN32Q1KmZjTBAEAQACMvHRup0pLnzyMb7jhzukXTmRj75np7L/51/w5qhII/jjDPxO07tQ2gsKrFcNNTIe9l45GIv42Jh35rZPKNM8nAjWT1M1S2TZaoUDVEIXIDUlXKpmgrSsvND1RNw0F+aXFs7r3jDDbXKstMt0KY80231zzrDKoMA7mr2aZb7XFelhqkVkKoLM+4AM=") format("woff2");
+  }
+
+  .dbison-splash {
+    /* Fixed rather than a height chain: in dev main.css arrives with the
+       bundle, so `html, body { height: 100% }` is not in force yet. */
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+
+    /* The window has no title bar of its own while this is up, so the whole
+       backdrop moves it. */
+    -webkit-app-region: drag;
+
+    background-color: #0d1120;
+    color: #98a2c0;
+    font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    font-size: 13px;
+    user-select: none;
+    cursor: default;
+
+    --splash-accent: #8b5cf6;
+    --splash-accent-bright: #a78bfa;
+    --splash-accent-alt: #e879f9;
+    --splash-warm: #e8a33d;
+    --splash-track: #222b45;
+  }
+
+  [data-splash-theme="light"] .dbison-splash {
+    background-color: #ffffff;
+    color: #565f7e;
+
+    --splash-accent: #6d3bf0;
+    --splash-accent-bright: #5a24e8;
+    --splash-accent-alt: #b14fe0;
+    --splash-warm: #b9701a;
+    --splash-track: #dbe0ee;
+  }
+
+  /* The lockup from the menu bar, scaled up: the mark, then the wordmark in
+     the display face and the accent gradient. Weight and tracking match
+     `AppMenuBar.vue`, so the hand-off to the title bar keeps the same shape. */
+  .dbison-splash__lockup {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .dbison-splash__wordmark {
+    font-family: "DBison Splash Wordmark", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    /* Tracking hangs an empty column off the last letter; without this the
+       lockup sits that far left of centre. */
+    margin-right: -0.14em;
+    background-image: linear-gradient(135deg, var(--splash-accent) 0%, var(--splash-accent-alt) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* An indeterminate sweep — nothing here knows how far along it is, and a bar
+     that pretended to would be lying for most of a cold start. */
+  .dbison-splash__bar {
+    position: relative;
+    overflow: hidden;
+    width: 190px;
+    height: 2px;
+    border-radius: 999px;
+    background-color: var(--splash-track);
+  }
+
+  .dbison-splash__bar::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    width: 35%;
+    background-image: linear-gradient(90deg, transparent, var(--splash-accent-bright), transparent);
+    animation: dbison-splash-sweep 1.1s ease-in-out infinite;
+  }
+
+  @keyframes dbison-splash-sweep {
+    from { transform: translateX(-120%); }
+    to { transform: translateX(400%); }
+  }
+
+  .dbison-splash__status {
+    min-height: 1.2em; /* so the line appearing does not nudge the lockup */
+    letter-spacing: 0.02em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dbison-splash__bar::after {
+      animation-duration: 3s;
+    }
+  }
+</style>
+
+<div class="dbison-splash">
+  <div class="dbison-splash__lockup">
+    <!-- The bison mark, kept in step with `AppLogo.vue`; the gradient id is
+         prefixed because this shares a document with the app for the instant
+         before Vue takes the node over. -->
+    <svg width="46" height="46" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="dbison-splash-fill" x1="4" y1="3" x2="20" y2="21" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="var(--splash-accent-bright)" />
+          <stop offset="100%" stop-color="var(--splash-accent-alt)" />
+        </linearGradient>
+      </defs>
+
+      <g stroke="var(--splash-warm)" stroke-width="2.1" stroke-linecap="round" fill="none">
+        <path d="M7.6 8.4C4.6 9.2 2.4 7.9 2.1 4.7" />
+        <path d="M16.4 8.4C19.4 9.2 21.6 7.9 21.9 4.7" />
+      </g>
+
+      <path
+        fill="url(#dbison-splash-fill)"
+        fill-rule="evenodd"
+        d="M5.8 8.8C5.5 6.8 6.7 5.4 8.1 5.2C8.5 4 9.7 3.6 10.3 4.5C10.8 3.6 11.6 3.4 12 4.2C12.4 3.4 13.2 3.6 13.7 4.5C14.3 3.6 15.5 4 15.9 5.2C17.3 5.4 18.5 6.8 18.2 8.8C18 10.5 17.2 11.8 16.2 12.5L15.7 15C15.7 16.9 14.2 18.8 12 18.8C9.8 18.8 8.3 16.9 8.3 15L7.8 12.5C6.8 11.8 6 10.5 5.8 8.8ZM8.18 10.5A0.62 0.62 0 1 0 9.42 10.5A0.62 0.62 0 1 0 8.18 10.5ZM14.58 10.5A0.62 0.62 0 1 0 15.82 10.5A0.62 0.62 0 1 0 14.58 10.5Z"
+      />
+    </svg>
+
+    <span class="dbison-splash__wordmark">DBISON</span>
+  </div>
+
+  <div class="dbison-splash__bar"></div>
+
+  <!-- What the Nuxt copy is waiting on, and where the disk copy ends up too.
+       `main.js` overwrites it with the earlier, longer wait while the server
+       is still coming up. -->
+  <p class="dbison-splash__status" data-splash-status>Loading the workspace…</p>
+</div>
+
+<script>
+  // Runs in both copies, so it has to survive a file:// origin where
+  // localStorage is a different (empty, and on some platforms throwing) store.
+  (function () {
+    var root = document.documentElement
+
+    if (root.dataset.splashTheme) return
+
+    var query = new URLSearchParams(location.search).get('theme')
+
+    if (query !== 'light' && query !== 'dark') {
+      try {
+        query = localStorage.getItem('dbison.theme')
+      }
+      catch { /* storage denied; the dark default stands */ }
+    }
+
+    root.dataset.splashTheme = query === 'light' ? 'light' : 'dark'
+  })()
+</script>

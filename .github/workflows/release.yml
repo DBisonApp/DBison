@@ -1,0 +1,52 @@
+name: Release
+
+# A `v*` tag builds installers on every desktop platform and uploads them to the
+# release bucket, where installed apps pick them up; see docs/RELEASING.md for
+# the tag flow and the secrets.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Make and publish (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # maker-deb and maker-rpm shell out to dpkg and rpmbuild.
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y dpkg fakeroot rpm
+
+      - run: npm ci
+
+      # `publish` builds Nuxt, runs every maker for this platform and uploads
+      # the results, so there is one build per job.
+      - run: npm run publish
+        env:
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          WINDOWS_CERT_FILE: ${{ secrets.WINDOWS_CERT_FILE }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dbison-${{ matrix.os }}
+          path: out/make/**
+          if-no-files-found: error
