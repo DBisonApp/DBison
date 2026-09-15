@@ -66,6 +66,10 @@ npm run package    # unpacked app in out/
 npm run make       # installers for the current platform
 ```
 
+Both run `nuxt generate` first. The packaged app contains only `main.js`, `electron/`, the `shared/` runtime files, the Linux icon, the generated renderer (`.output/public`) and the production dependencies; `forge.config.js` whitelists them and minifies the main-process sources in the packaged copy. The renderer is served from inside the asar over the app's own `app://dbison` protocol, so no port is opened. Anything the running app needs at runtime must be added to `PACKAGED` in `forge.config.js` and, if it is an npm package the main process imports, listed under `dependencies` (everything bundled into the renderer belongs in `devDependencies`).
+
+The legal documents live in `public/legal/` (licence agreement, privacy statement); `third-party-notices.txt` is generated during the build by `modules/legal` and shown under Help ▸ About DBison.
+
 Releases are built and published by `.github/workflows/release.yml` on a `v*` tag; they are uploaded to an S3-compatible bucket (e.g. DigitalOcean Spaces) that packaged builds auto-update from once `package.json` names it under `updates`. See `docs/RELEASING.md` for the fields and secrets involved.
 
 ## Layout

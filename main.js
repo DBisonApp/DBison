@@ -1,9 +1,9 @@
 import path from 'path';
 import http from 'http';
 import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
-import { app, BrowserWindow, dialog, Menu, shell } from 'electron';
+import { app, BrowserWindow, dialog, Menu, net, protocol, shell } from 'electron';
 import { spawn, execFile } from 'child_process';
 import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
 
@@ -26,15 +26,46 @@ const handledSquirrelEvent = process.platform === 'win32' && require('electron-s
 // productName (DBison) names the app, but the data folder keeps the name it has
 // always had: on Linux ~/.config/DBison would be a new, empty folder beside the
 // ~/.config/dbison that holds every saved connection.
-app.setPath('userData', path.join(app.getPath('appData'), 'dbison'));
+// An explicit --user-data-dir (a second profile, a test run) wins.
+if (!app.commandLine.hasSwitch('user-data-dir')) {
+    app.setPath('userData', path.join(app.getPath('appData'), 'dbison'));
+}
 
 // Squirrel's shortcuts carry this id; the running app has to match it for
 // taskbar pins and notifications to group with the shortcut.
 if (process.platform === 'win32') app.setAppUserModelId('com.squirrel.dbison.dbison');
 
-const HOST = '127.0.0.1';
-const PORT = Number(process.env.NUXT_PORT ?? 3000);
-const APP_URL = `http://${HOST}:${PORT}`;
+// One app per profile: a second launch focuses the window already open rather
+// than starting another copy over the same stores. The lock is keyed on the
+// userData path, so it is taken once that is settled.
+const isPrimaryInstance = handledSquirrelEvent || app.requestSingleInstanceLock();
+if (!isPrimaryInstance) app.quit();
+
+app.on('second-instance', () => {
+    const [window] = BrowserWindow.getAllWindows();
+    if (!window) return;
+    if (window.isMinimized()) window.restore();
+    window.focus();
+});
+
+// Packaged builds load the renderer from the app's own app://dbison protocol,
+// read straight out of the asar (see `serveRenderer`). Nothing listens on a
+// port, so no other local process can answer in the app's place and inherit
+// its preload bridge. From source the Nuxt dev server provides hot reload.
+const APP_SCHEME = 'app';
+const APP_HOST = 'dbison';
+const DEV_HOST = '127.0.0.1';
+const DEV_PORT = Number(process.env.NUXT_PORT ?? 3000);
+const APP_URL = app.isPackaged ? `${APP_SCHEME}://${APP_HOST}` : `http://${DEV_HOST}:${DEV_PORT}`;
+
+// The `nuxt generate` output, packaged inside the asar.
+const RENDERER_ROOT = path.join(__dirname, '.output', 'public');
+
+// Before `ready`. A standard, secure scheme gets an origin of its own, with
+// localStorage, module scripts, workers and fetch, as https would.
+protocol.registerSchemesAsPrivileged([
+    { scheme: APP_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, codeCache: true } },
+]);
 
 // The same markup Nuxt shows while its bundle boots (`spaLoadingTemplate`),
 // loaded straight off disk so the window has something to show during the much
@@ -48,28 +79,41 @@ let connectionManager;
 // dialog that quits the app; see electron/log.js.
 installProcessHandlers();
 
-// Starts Nuxt: the dev server when running from source, the built Nitro
-// server once packaged. Both listen on APP_URL.
-function startNuxt() {
-    if (app.isPackaged) {
-        // .output is shipped via extraResource, so it sits next to the asar.
-        const serverEntry = path.join(process.resourcesPath, '.output', 'server', 'index.mjs');
-
-        // ELECTRON_RUN_AS_NODE makes our own binary behave as plain node, so we
-        // don't depend on node being installed on the user's machine. It needs
-        // the RunAsNode fuse enabled in forge.config.js.
-        return spawn(process.execPath, [serverEntry], {
-            env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', HOST, PORT: String(PORT), NODE_ENV: 'production' },
-            stdio: 'inherit',
-        });
-    }
-
+// Starts the Nuxt dev server when running from source; it listens on APP_URL.
+function startDevServer() {
     const nuxtBin = path.join(__dirname, 'node_modules', 'nuxt', 'bin', 'nuxt.mjs');
 
-    return spawn(process.execPath, [nuxtBin, 'dev', '--host', HOST, '--port', String(PORT)], {
+    return spawn(process.execPath, [nuxtBin, 'dev', '--host', DEV_HOST, '--port', String(DEV_PORT)], {
         cwd: __dirname,
         env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
         stdio: 'inherit',
+    });
+}
+
+// Answers app://dbison/… from the generated renderer. A path without an
+// extension is a route of the SPA and gets its shell; one that would resolve
+// outside the renderer folder is refused.
+function serveRenderer() {
+    protocol.handle(APP_SCHEME, async (request) => {
+        const url = new URL(request.url);
+        if (url.host !== APP_HOST) return new Response(null, { status: 404 });
+
+        let file;
+        try {
+            file = path.join(RENDERER_ROOT, decodeURIComponent(url.pathname));
+        } catch {
+            return new Response(null, { status: 400 });
+        }
+        if (file !== RENDERER_ROOT && !file.startsWith(RENDERER_ROOT + path.sep)) {
+            return new Response(null, { status: 403 });
+        }
+
+        const target = path.extname(file) ? file : path.join(RENDERER_ROOT, 'index.html');
+        try {
+            return await net.fetch(pathToFileURL(target).toString());
+        } catch {
+            return new Response(null, { status: 404 });
+        }
     });
 }
 
@@ -198,13 +242,17 @@ async function createWindow() {
 
     // The renderer is the app and nothing else: a link in a result cell or
     // a dragged file must not navigate the window away, and nothing here
-    // opens a second window. An http(s) link is handed to the browser.
+    // opens a second window. An http(s) link is handed to the browser, a
+    // mailto: link (the author's address in About) to the mail app, and a
+    // bitcoin: payment link (Help ▸ Support DBison) to the user's wallet app.
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (/^https?:\/\//i.test(url)) shell.openExternal(url).catch(() => {});
+        if (/^(https?:\/\/|mailto:|bitcoin:)/i.test(url)) shell.openExternal(url).catch(() => {});
         return { action: 'deny' };
     });
+    // Only the app's own pages, not file:// either: a dropped .html file would
+    // otherwise open with the preload bridge attached.
     mainWindow.webContents.on('will-navigate', (event, url) => {
-        if (url.startsWith(APP_URL) || url.startsWith('file://')) return;
+        if (url === APP_URL || url.startsWith(`${APP_URL}/`)) return;
         event.preventDefault();
     });
 
@@ -228,10 +276,10 @@ async function createWindow() {
         if (choice !== 0) event.preventDefault();
     });
 
-    // The server first: it is what everything after this waits on, and the
-    // load screen is a local file that costs a frame to put up.
-    if (!nuxtProcess) {
-        nuxtProcess = startNuxt();
+    // From source, the dev server first: it is what everything after this waits
+    // on, and the load screen is a local file that costs a frame to put up.
+    if (!app.isPackaged && !nuxtProcess) {
+        nuxtProcess = startDevServer();
         nuxtProcess.on('exit', (code) => {
             if (code !== 0 && code !== null) {
                 log('error', `Nuxt process exited with code ${code}`);
@@ -241,18 +289,25 @@ async function createWindow() {
 
     // The same load screen Nuxt keeps showing once the server answers, so the
     // hand-off is a status line changing rather than a second screen.
-    await mainWindow.loadFile(SPLASH_FILE, { query: { theme: appearance().theme } });
-
-    splashStatus(mainWindow.webContents, app.isPackaged ? 'Starting…' : 'Starting the dev server…');
+    // From source only. A packaged build has no server to wait for, and its
+    // index.html carries this same markup; the GrantFileProtocolExtraPrivileges
+    // fuse also keeps file:// pages from reading inside the asar. A load screen
+    // that fails to show is no reason not to open the app.
+    if (!app.isPackaged) {
+        await mainWindow.loadFile(SPLASH_FILE, { query: { theme: appearance().theme } }).catch((error) => {
+            log('warn', `Load screen did not show: ${error.message}`);
+        });
+        splashStatus(mainWindow.webContents, 'Starting the dev server…');
+    }
 
     try {
-        await waitForServer();
+        if (!app.isPackaged) await waitForServer();
 
         splashStatus(mainWindow.webContents, 'Loading the workspace…');
 
         await mainWindow.loadURL(APP_URL);
     } catch (error) {
-        log('error', `Failed to start the app server: ${error.message}`, describeError(error));
+        log('error', `Failed to load the app: ${error.message}`, describeError(error));
         const escaped = String(error.message).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
         await mainWindow.loadURL(
             `data:text/html,${encodeURIComponent(`<h1>Failed to start</h1><pre>${escaped}</pre><p>Details are in ${logPath()}</p>`)}`,
@@ -319,7 +374,9 @@ function startAutoUpdate() {
 
 // Creates the window when electron app is ready
 app.whenReady().then(async () => {
-    if (handledSquirrelEvent) return;
+    if (handledSquirrelEvent || !isPrimaryInstance) return;
+
+    if (app.isPackaged) serveRenderer();
 
     // Before the first window: it decides the colours that window opens on.
     await loadAppearance();

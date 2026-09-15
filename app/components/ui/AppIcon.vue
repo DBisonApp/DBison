@@ -117,6 +117,20 @@ const ICONS = {
   archiveRestore: 'lucide:archive-restore',
   /** The command-line tool a backup runs through. */
   terminal: 'lucide:terminal',
+  /** Help ▸ Support DBison. */
+  heart: 'lucide:heart',
+  /** Ko-fi, where supporters tip. */
+  coffee: 'lucide:coffee',
+  /** Hand a crypto payment link to a wallet app. */
+  wallet: 'lucide:wallet',
+  /** What support pays for, on the Support page. */
+  sparkles: 'lucide:sparkles',
+  bug: 'lucide:bug',
+  shieldCheck: 'lucide:shield-check',
+  /** Word of mouth: the support that costs nothing. */
+  messageHeart: 'lucide:message-circle-heart',
+  /** Crypto addresses support can be sent to. */
+  coins: 'lucide:coins',
 } as const
 
 export type IconName = keyof typeof ICONS

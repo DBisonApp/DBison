@@ -1,0 +1,84 @@
+DBison End User Licence Agreement
+
+Last updated: 14 September 2026
+
+This agreement is between you and Jan Vorisek (the "author"), who owns DBison.
+By installing or using DBison you accept it. If you do not accept it, do not
+install or use DBison.
+
+1. Licence
+
+The author grants you a non-exclusive, non-transferable, revocable licence to
+install and use DBison on devices you own or control, for personal or internal
+business purposes, under the terms of this agreement.
+
+2. Ownership
+
+DBison is licensed, not sold. The author keeps all rights, title and interest in
+DBison, including its source code and all copyright in it. You receive no rights
+other than those this agreement states.
+
+3. Restrictions
+
+Except to the extent applicable law expressly permits it despite this
+restriction, you may not:
+
+  a. copy DBison, other than as needed to install and use it;
+  b. modify, adapt, translate or create derivative works of DBison;
+  c. decompile, disassemble, reverse engineer or otherwise attempt to derive
+     its source code;
+  d. sell, rent, lease, lend, sublicense, distribute or publish DBison, or make
+     it available to others as a service;
+  e. remove or alter any copyright or proprietary notice in DBison.
+
+4. Third-party components
+
+DBison includes open-source components that are licensed under their own terms.
+They are listed with their licences under Help > About DBison > Third-party
+notices. Those licences govern those components, and nothing in this agreement
+restricts rights they grant you.
+
+5. Your data
+
+DBison works with the databases, servers and files you choose, using the
+credentials you provide. You are responsible for that data, for keeping your
+credentials safe, and for the statements you run, including keeping backups
+before making changes. How DBison handles information is described in its
+privacy statement, under Help > About DBison > Privacy.
+
+6. Updates
+
+DBison checks for updates and may download them automatically. Updates are
+covered by this agreement unless they come with different terms.
+
+7. No warranty
+
+To the maximum extent permitted by law, DBison is provided "as is" and "as
+available", without warranty of any kind, express or implied, including any
+warranty of merchantability, fitness for a particular purpose or
+non-infringement. The author does not warrant that DBison will be error-free or
+uninterrupted, or that it will not lose or alter data.
+
+8. Limitation of liability
+
+To the maximum extent permitted by law, the author is not liable for any
+indirect, incidental, special, consequential or punitive damages, or for any
+loss of data, profits, revenue or business, arising out of or in connection with
+the use of or inability to use DBison, even if advised of the possibility of such
+damages. The author's total liability under this agreement is limited to the
+amount you paid for DBison, if any. Nothing in this agreement excludes or limits
+liability that cannot be excluded or limited by law.
+
+9. Termination
+
+This licence ends automatically if you breach this agreement. When it ends you
+must stop using DBison and delete all copies of it. Sections 2, 3, 7, 8 and 9
+survive termination.
+
+10. Changes
+
+The author may offer later versions of DBison under different terms.
+
+11. Contact
+
+Questions about this agreement: jan@vorisek.me

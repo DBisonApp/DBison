@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises'
 
-import { BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron'
 
 import { IPC } from '../shared/ipc-channels.js'
 import { saveAppearance } from './appearance-store.js'
@@ -16,6 +16,19 @@ import { cancelTool, commandFor, locateTool, runTool } from './tools.js'
 import { serializeError } from './drivers/values.js'
 
 /**
+ * Packaged builds answer only the app's own top-level page (app://dbison, see
+ * main.js). Anything else that ends up in the window, a page the navigation
+ * guard missed or an iframe, must not reach drivers, files or tools. From
+ * source the renderer is whichever dev server the developer or a smoke script
+ * points at, so the check is left to packaged builds.
+ */
+function isTrustedSender(event) {
+  if (!app.isPackaged) return true
+  const frame = event.senderFrame
+  return Boolean(frame) && frame === event.sender.mainFrame && frame.url.startsWith('app://dbison/')
+}
+
+/**
  * Every handler answers with `{ ok: true, data }` or `{ ok: false, error }`
  * instead of letting the rejection cross IPC. A rejected `invoke` reaches the
  * renderer as a string with an "Error invoking remote method" prefix, which
@@ -23,6 +36,10 @@ import { serializeError } from './drivers/values.js'
  */
 function handle(channel, fn) {
   ipcMain.handle(channel, async (event, ...args) => {
+    if (!isTrustedSender(event)) {
+      log('warn', `${channel} refused: sent from ${event.senderFrame?.url || 'an unknown frame'}`)
+      return { ok: false, error: serializeError(new Error('Refused: the request did not come from DBison.')) }
+    }
     try {
       return { ok: true, data: await fn(...args, event) }
     }

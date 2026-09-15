@@ -159,6 +159,11 @@ onMounted(async () => {
 
   installGoToTable(instance, editor)
 
+  // F1 is the app's Keyboard Shortcuts, as in most desktop software. Monaco
+  // claims it for its own command palette and swallows the keydown, so the
+  // binding is dropped and the key bubbles up to the window like anywhere else.
+  instance.editor.addKeybindingRule({ keybinding: instance.KeyCode.F1, command: '-editor.action.quickCommand' })
+
   editor.onDidChangeModelContent(() => {
     sql.value = model!.getValue()
   })

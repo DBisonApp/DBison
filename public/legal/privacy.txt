@@ -1,0 +1,48 @@
+DBison Privacy Statement
+
+Last updated: 14 September 2026
+
+In short: DBison has no accounts, no telemetry and no analytics. What you do in
+it stays on your computer, apart from the connections you open yourself and the
+update check described below.
+
+What stays on your computer
+
+  - Connection profiles, saved queries, query history, the workspace layout and
+    settings are stored in DBison's data folder on your computer.
+  - Passwords you choose to save are protected with your operating system's
+    secure storage where it is available.
+  - DBison keeps a log file of errors and app events, to help diagnose problems.
+    It never leaves your computer unless you send it to someone yourself. It
+    does not record passwords, but it can contain host names, file paths and
+    parts of error messages returned by your databases.
+
+Network connections DBison makes
+
+  - To the database servers and SSH hosts you configure, when you connect to
+    them. What is sent is what your queries and actions require.
+  - To check for updates: when it starts and about once an hour, DBison
+    requests the update manifest from its release storage, hosted on
+    DigitalOcean Spaces in Frankfurt, Germany, and downloads updates from
+    there. Like any web request, this reveals your IP address to the host. The
+    request identifies your platform and processor architecture and may
+    include the installed DBison version.
+  - Links you open from DBison are handed to your web browser.
+  - "Support on Ko-fi" opens DBison's Ko-fi page in your web browser. A tip,
+    and any payment or contact details you enter there, are handled by Ko-fi
+    and its payment providers (such as Stripe or PayPal) under their own
+    privacy policies; DBison never receives them.
+  - Crypto addresses are shown in the app with a QR code, drawn on your
+    computer, for you to copy or scan. "Open in wallet" hands a bitcoin:
+    payment link to the wallet app installed on your computer. DBison
+    contacts no blockchain or payment service for any of this.
+
+DBison does not send your queries, results, schemas, files or connection details
+anywhere else, and it contains no advertising or tracking code.
+
+Backup and restore run the database tools you point DBison at (such as pg_dump
+or mysqldump) on your computer, with the connection's settings.
+
+Contact
+
+Questions about privacy: jan@vorisek.me

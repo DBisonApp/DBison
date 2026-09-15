@@ -111,11 +111,30 @@ publish a higher version; deleting files only stops new downloads.
 
 ## 5. Code signing
 
-Signing switches on only when the corresponding secrets exist.
+Releases are unsigned for now. Signing them later needs no code change: each
+platform switches it on as soon as its secrets exist.
 
-**macOS updates require it**: Squirrel.Mac refuses to install an update that
-is not signed by the same Developer ID as the running app, so unsigned macOS
-builds install but never update.
+### What unsigned means for users
+
+- **Windows**: SmartScreen shows "Windows protected your PC" on first run;
+  More info → Run anyway. Auto-update works unsigned, so these installs move
+  to signed builds by themselves once there are some.
+- **macOS**: Gatekeeper will not open the app until the user allows it once,
+  under System Settings → Privacy & Security → Open Anyway, or with
+  `xattr -dr com.apple.quarantine /Applications/DBison.app`. Squirrel.Mac only
+  installs updates into a signed app, so unsigned installs never update:
+  every macOS user downloads the first signed build by hand, once.
+- **Linux**: no difference. The packages are not GPG-signed either way.
+
+### Switching signing on
+
+1. Add the platform's secrets from the tables below.
+2. Tag a release and check that job's log for the signing (and, on macOS,
+   notarization) steps.
+3. Set the repository variable `REQUIRE_SIGNING` to `true` under Settings →
+   Secrets and variables → Actions → Variables. From then on a release job
+   whose platform lacks its secrets fails before it builds, rather than
+   quietly publishing an unsigned build over signed ones.
 
 ### macOS
 
@@ -126,26 +145,66 @@ builds install but never update.
 | `APPLE_TEAM_ID`               | The 10-character team ID from the developer portal   |
 
 `forge.config.js` then sets `osxSign: {}` and `osxNotarize` from these. The
-signing certificate itself (a "Developer ID Application" identity) has to be
-present in the runner's keychain; on GitHub-hosted macOS runners that means
-importing it from a further secret in a step before `npm run publish`, for
-example with `apple-actions/import-codesign-certs`. That step is not added here
-because it depends on how the certificate is exported.
+signing certificate itself, a "Developer ID Application" identity, has to be in
+the runner's keychain as well:
+
+| Secret                       | Value                                                  |
+| ---------------------------- | ------------------------------------------------------ |
+| `MACOS_CERTIFICATE_P12`      | The identity exported from Keychain Access as `.p12`, base64-encoded (`base64 -i cert.p12 \| pbcopy`) |
+| `MACOS_CERTIFICATE_PASSWORD` | The password chosen when exporting it                  |
+
+`release.yml` imports it with `apple-actions/import-codesign-certs` before
+`npm run publish`. All five secrets are needed: the certificate alone signs
+nothing, because `forge.config.js` switches signing on from the `APPLE_*` ones.
+
+Without all five the macOS job publishes an unsigned build, unless
+`REQUIRE_SIGNING` is set.
 
 ### Windows
 
 Unsigned Windows builds update fine but show a SmartScreen warning on first
 install.
 
-| Secret                  | Value                                                   |
-| ----------------------- | ------------------------------------------------------- |
-| `WINDOWS_CERT_FILE`     | Path to the `.pfx` code-signing certificate on the runner |
-| `WINDOWS_CERT_PASSWORD` | Its password                                            |
+`forge.config.js` builds one `windowsSign` configuration from the environment
+and signs with it twice: `dbison.exe` and the app's other binaries while
+packaging, then `Setup.exe`, `Update.exe` and the update package while making.
+There are two ways to feed it, depending on the certificate.
 
-The Squirrel maker receives these as `certificateFile` and
-`certificatePassword`. Because the value has to be a file path, a base64 secret
-is typically decoded to a file in a step before `npm run publish` and the path
-exported as `WINDOWS_CERT_FILE` for the following steps.
+**A cloud signing service or HSM.** Anything bought since June 2023, when
+certificate authorities moved code-signing keys onto hardware tokens and cloud
+HSMs, works this way: Azure Artifact Signing, SSL.com eSigner, Certum
+SimplySign.
+
+| Name                       | Kind     | Value |
+| -------------------------- | -------- | ----- |
+| `WINDOWS_SIGN_PARAMS`      | secret   | The `signtool sign` arguments that select the provider's key, e.g. `/dlib <dir>\Azure.CodeSigning.Dlib.dll /dmdf <dir>\metadata.json` for Azure Artifact Signing |
+| `WINDOWS_SIGNTOOL_PATH`    | variable | A `signtool.exe` new enough for the provider's library. The copy bundled with `@electron/windows-sign` is 10.0.22000 (2021); GitHub's Windows runners have newer ones under `C:\Program Files (x86)\Windows Kits\10\bin\` |
+| `WINDOWS_TIMESTAMP_SERVER` | variable | The provider's timestamp URL, if it requires its own (Azure Artifact Signing: `http://timestamp.acs.microsoft.com`) |
+
+The provider's client library also has to be on the runner, installed by a
+step before `npm run publish`; that step depends on the provider and gets added
+when one is chosen. For Azure Artifact Signing, `AZURE_CLIENT_ID`,
+`AZURE_CLIENT_SECRET` and `AZURE_TENANT_ID` are secrets the publish step
+already passes through.
+
+**An exportable `.pfx`**, from an older certificate:
+
+| Secret                    | Value                                          |
+| ------------------------- | ---------------------------------------------- |
+| `WINDOWS_CERTIFICATE_PFX` | The `.pfx` code-signing certificate, base64-encoded |
+| `WINDOWS_CERT_PASSWORD`   | Its password                                   |
+
+`release.yml` decodes the certificate into the runner's temp folder and exports
+its path as `WINDOWS_CERT_FILE`. If both routes are configured, the signtool
+arguments win.
+
+Signing does not silence SmartScreen straight away: every new certificate,
+EV included, builds reputation through downloads first.
+
+### Local builds
+
+`npm run make` without any of these produces unsigned installers, which is
+fine for trying a build.
 
 ## Where things end up
 

@@ -8,6 +8,7 @@ import PromptDialog from '~/components/ui/PromptDialog.vue'
 import SaveQueryDialog from '~/components/ui/SaveQueryDialog.vue'
 import SettingsDialog from '~/components/ui/SettingsDialog.vue'
 import ShortcutsDialog from '~/components/ui/ShortcutsDialog.vue'
+import SupportDialog from '~/components/ui/SupportDialog.vue'
 import BackupDialog, { type BackupDialogProps } from '~/components/workbench/BackupDialog.vue'
 import ConnectionDialog from '~/components/workbench/ConnectionDialog.vue'
 import CreateTableDialog, { type CreateTableDialogProps, type CreateTableResult } from '~/components/workbench/CreateTableDialog.vue'
@@ -71,12 +72,26 @@ export function useDialogs() {
 
   /** The Help menu's "About DBison", which before this had no action at all. */
   function openAbout() {
-    return openModal(AboutDialog, { props: { version: useRuntimeConfig().public.version } })
+    const { version, author } = useRuntimeConfig().public
+    return openModal(AboutDialog, { props: { version, author } })
+      .catch(() => null)
+  }
+
+  /**
+   * Help ▸ Support DBison, with the options package.json sets up. Runtime
+   * config types are inferred from the values, which says too little about
+   * the crypto entries; their shape is `supportOptions` in
+   * `shared/package-meta.js`.
+   */
+  function openSupport() {
+    const { author, support } = useRuntimeConfig().public
+    const crypto = support.crypto as { name: string, network: string, address: string, uri: string | null }[]
+    return openModal(SupportDialog, { props: { author: author.name, kofi: support.kofi, crypto } })
       .catch(() => null)
   }
 
   /** Lists the keystrokes the caller actually has bound; see `ShortcutsDialog`. */
-  function openShortcuts(items: { label: string, keys: string }[]) {
+  function openShortcuts(items: { label: string, keys: string, group: string }[]) {
     return openModal(ShortcutsDialog, { props: { items } }).catch(() => null)
   }
 
@@ -163,6 +178,7 @@ export function useDialogs() {
     notice,
     openCellValue,
     openAbout,
+    openSupport,
     openShortcuts,
     openSettings,
     openParameters,

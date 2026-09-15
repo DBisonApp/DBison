@@ -31,10 +31,60 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y dpkg fakeroot rpm
 
+      # Which signing secrets are configured, as step outputs: a step's `if`
+      # cannot test a secret directly. Releases are unsigned until they exist;
+      # docs/RELEASING.md walks through switching signing on.
+      - name: Detect signing configuration
+        id: signing
+        shell: bash
+        run: |
+          echo "macos_certificate=${{ secrets.MACOS_CERTIFICATE_P12 != '' }}" >> "$GITHUB_OUTPUT"
+          echo "macos=${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}" >> "$GITHUB_OUTPUT"
+          echo "windows_pfx=${{ secrets.WINDOWS_CERTIFICATE_PFX != '' }}" >> "$GITHUB_OUTPUT"
+          echo "windows=${{ secrets.WINDOWS_CERTIFICATE_PFX != '' || secrets.WINDOWS_SIGN_PARAMS != '' }}" >> "$GITHUB_OUTPUT"
+
+      # Once releases are signed, an unsigned one is a regression users notice:
+      # SmartScreen again on Windows, a build that cannot update on macOS. The
+      # repository variable REQUIRE_SIGNING=true then fails a job whose platform
+      # is missing its secrets, before anything is built or uploaded.
+      - name: Require signing
+        if: vars.REQUIRE_SIGNING == 'true'
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            macOS)
+              [ "${{ steps.signing.outputs.macos }}" = true ] \
+                || { echo "::error::REQUIRE_SIGNING is set, but the macOS signing secrets are incomplete"; exit 1; } ;;
+            Windows)
+              [ "${{ steps.signing.outputs.windows }}" = true ] \
+                || { echo "::error::REQUIRE_SIGNING is set, but no Windows signing secret is configured"; exit 1; } ;;
+          esac
+
       - run: npm ci
 
-      # `publish` builds Nuxt, runs every maker for this platform and uploads
-      # the results, so there is one build per job.
+      # The Developer ID Application identity that osxSign looks for, in a
+      # temporary keychain that lasts as long as the job.
+      - name: Import the macOS signing certificate
+        if: runner.os == 'macOS' && steps.signing.outputs.macos_certificate == 'true'
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+      # The Squirrel maker wants a file path; the secret holds the .pfx as
+      # base64. RUNNER_TEMP is wiped when the job ends.
+      - name: Decode the Windows signing certificate
+        if: runner.os == 'Windows' && steps.signing.outputs.windows_pfx == 'true'
+        shell: pwsh
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+        run: |
+          $file = Join-Path $env:RUNNER_TEMP 'dbison-signing.pfx'
+          [IO.File]::WriteAllBytes($file, [Convert]::FromBase64String($env:CERTIFICATE))
+          "WINDOWS_CERT_FILE=$file" >> $env:GITHUB_ENV
+
+      # `publish` generates the renderer, runs every maker for this platform and
+      # uploads the results, so there is one build per job.
       - run: npm run publish
         env:
           S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
@@ -42,8 +92,15 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          WINDOWS_CERT_FILE: ${{ secrets.WINDOWS_CERT_FILE }}
           WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+          WINDOWS_SIGN_PARAMS: ${{ secrets.WINDOWS_SIGN_PARAMS }}
+          WINDOWS_SIGNTOOL_PATH: ${{ vars.WINDOWS_SIGNTOOL_PATH }}
+          WINDOWS_TIMESTAMP_SERVER: ${{ vars.WINDOWS_TIMESTAMP_SERVER }}
+          # Read by Azure Artifact Signing's client library, if that is the
+          # provider; empty otherwise.
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
       - uses: actions/upload-artifact@v4
         with:

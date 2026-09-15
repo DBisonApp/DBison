@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 
 import pkg from './package.json'
+import { parseAuthor, supportOptions } from './shared/package-meta.js'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -21,9 +22,16 @@ export default defineNuxtConfig({
 
   modules: ['@nuxt/eslint', '@nuxt/icon', '@nuxtjs/google-fonts'],
 
-  // The About dialog reads the shipped version from here rather than being
-  // edited alongside package.json and drifting from it.
-  runtimeConfig: { public: { version: pkg.version } },
+  // The About and Support dialogs read the shipped version, the author and the
+  // support options from here rather than being edited alongside package.json
+  // and drifting from it.
+  runtimeConfig: {
+    public: {
+      version: pkg.version,
+      author: parseAuthor(pkg.author),
+      support: supportOptions(pkg),
+    },
+  },
 
   css: [
     // Before main.css so our own tokens and Tailwind utilities win.
@@ -157,6 +165,14 @@ export default defineNuxtConfig({
         'lucide:archive',
         'lucide:archive-restore',
         'lucide:terminal',
+        'lucide:heart',
+        'lucide:coffee',
+        'lucide:wallet',
+        'lucide:sparkles',
+        'lucide:bug',
+        'lucide:shield-check',
+        'lucide:message-circle-heart',
+        'lucide:coins',
         // Engine logos, named by `DriverIcon.vue`.
         'devicon:postgresql',
         'devicon:mysql',

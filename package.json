@@ -12,6 +12,26 @@
     "bucket": "dbison-releases",
     "endpoint": "https://fra1.digitaloceanspaces.com"
   },
+  "support": {
+    "kofi": "https://ko-fi.com/janvorisek",
+    "crypto": [
+      {
+        "name": "Bitcoin",
+        "network": "Bitcoin",
+        "address": "bc1qmezxqy5m3kgmeyp7vcq9ctxv7tc793snv4fzvm"
+      },
+      {
+        "name": "Ethereum",
+        "network": "Ethereum",
+        "address": ""
+      },
+      {
+        "name": "USDC",
+        "network": "Ethereum (ERC-20)",
+        "address": ""
+      }
+    ]
+  },
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
@@ -19,9 +39,9 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "start": "electron-forge start",
-    "package": "nuxt build && electron-forge package",
-    "make": "nuxt build && electron-forge make",
-    "publish": "nuxt build && electron-forge publish",
+    "package": "nuxt generate && electron-forge package",
+    "make": "nuxt generate && electron-forge make",
+    "publish": "nuxt generate && electron-forge publish",
     "smoke": "node scripts/smoke.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -30,7 +50,25 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.8.9",
+    "mysql2": "^3.24.4",
+    "pg": "^8.23.0",
+    "pg-query-stream": "^4.17.0",
+    "ssh2": "^1.17.0",
+    "update-electron-app": "^3.3.0"
+  },
+  "devDependencies": {
     "@dagrejs/dagre": "^3.1.1",
+    "@electron-forge/cli": "^7.11.2",
+    "@electron-forge/maker-deb": "^7.11.2",
+    "@electron-forge/maker-rpm": "^7.11.2",
+    "@electron-forge/maker-squirrel": "^7.11.2",
+    "@electron-forge/maker-zip": "^7.11.2",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.11.2",
+    "@electron-forge/plugin-fuses": "^7.11.2",
+    "@electron-forge/publisher-s3": "^7.11.2",
+    "@electron/fuses": "^1.8.0",
     "@iconify-json/devicon": "^1.2.62",
     "@iconify-json/lucide": "^1.2.131",
     "@kolirt/vue-modal": "^2.4.0",
@@ -44,37 +82,21 @@
     "@vue-flow/core": "^1.48.2",
     "@vue-flow/minimap": "^1.5.4",
     "dockview-vue": "^8.3.0",
-    "electron-squirrel-startup": "^1.0.1",
-    "electron-updater": "^6.8.9",
+    "electron": "^44.3.0",
+    "esbuild": "^0.28.2",
     "eslint": "^10.10.0",
     "modern-monaco": "^0.4.2",
-    "mysql2": "^3.24.4",
     "nuxt": "^4.5.2",
-    "pg": "^8.23.0",
-    "pg-query-stream": "^4.17.0",
     "reka-ui": "^2.10.4",
     "sql-formatter": "^15.8.2",
-    "ssh2": "^1.17.0",
     "tailwindcss": "^4.3.3",
-    "update-electron-app": "^3.3.0",
-    "vue": "^3.5.42",
-    "vue-router": "^5.3.1"
-  },
-  "devDependencies": {
-    "@electron-forge/cli": "^7.11.2",
-    "@electron-forge/maker-deb": "^7.11.2",
-    "@electron-forge/maker-rpm": "^7.11.2",
-    "@electron-forge/maker-squirrel": "^7.11.2",
-    "@electron-forge/maker-zip": "^7.11.2",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.11.2",
-    "@electron-forge/plugin-fuses": "^7.11.2",
-    "@electron-forge/publisher-s3": "^7.11.2",
-    "@electron/fuses": "^1.8.0",
-    "electron": "^44.3.0",
     "tm-grammars": "^1.32.17",
     "tm-themes": "^1.12.11",
     "typescript": "^6.0.3",
+    "uqr": "^0.1.3",
     "vitest": "^5.0.0",
+    "vue": "^3.5.42",
+    "vue-router": "^5.3.1",
     "vue-tsc": "^3.3.11"
   }
 }

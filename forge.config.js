@@ -1,12 +1,15 @@
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
+import { transform } from 'esbuild';
+
 import { createHash } from 'crypto';
 import { createReadStream, readFileSync } from 'fs';
-import { stat, writeFile } from 'fs/promises';
+import { readdir, readFile, stat, writeFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { parseAuthor } from './shared/package-meta.js';
 import { linuxChannelFile, linuxUpdateManifest, updateFeed } from './shared/update-feed.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,7 +18,12 @@ const __dirname = path.dirname(__filename);
 // The S3 bucket releases are uploaded to and served from, from package.json's
 // `updates` field; null until that is filled in. docs/RELEASING.md says what
 // to set; nothing here invents a bucket.
-const feed = updateFeed(JSON.parse(readFileSync(path.join(__dirname, 'package.json'), 'utf8')));
+const pkg = JSON.parse(readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+const feed = updateFeed(pkg);
+
+// Who makes DBison, from package.json's `author`: the copyright in the macOS
+// About panel, the company in the Windows file properties, the .deb maintainer.
+const AUTHOR = parseAuthor(pkg.author);
 
 // Signing switches on with the secrets and is otherwise absent, so a local
 // `npm run make` still produces an (unsigned) build without any of them.
@@ -29,22 +37,80 @@ const macSigning = APPLE_ID && APPLE_APP_SPECIFIC_PASSWORD && APPLE_TEAM_ID
     }
   : {};
 
+// Windows signs with whichever of these the environment has:
+// - WINDOWS_SIGN_PARAMS: the `signtool sign` arguments that pick a key held by
+//   a cloud signing service or HSM (Azure Artifact Signing's /dlib and /dmdf,
+//   a token's /sha1, …), usually with WINDOWS_SIGNTOOL_PATH pointing at a
+//   signtool new enough for it. The one @electron/windows-sign bundles is from
+//   2021.
+// - WINDOWS_CERT_FILE and WINDOWS_CERT_PASSWORD: an exportable .pfx.
+// WINDOWS_TIMESTAMP_SERVER replaces the default (DigiCert's) with either. The
+// one configuration signs twice: the app's own binaries while packaging, and
+// Setup.exe, Update.exe and the update package while making.
+const WINDOWS_SIGN_PARAMS = process.env.WINDOWS_SIGN_PARAMS;
 const WINDOWS_CERT_FILE = process.env.WINDOWS_CERT_FILE;
-const WINDOWS_CERT_PASSWORD = process.env.WINDOWS_CERT_PASSWORD;
-const windowsSigning = WINDOWS_CERT_FILE
-  ? { certificateFile: WINDOWS_CERT_FILE, certificatePassword: WINDOWS_CERT_PASSWORD }
-  : {};
+const windowsSign = WINDOWS_SIGN_PARAMS || WINDOWS_CERT_FILE
+  ? {
+      ...(WINDOWS_SIGN_PARAMS
+        // The arguments already say which key; signtool's /a would pick its own.
+        ? { signWithParams: WINDOWS_SIGN_PARAMS, automaticallySelectCertificate: false }
+        : { certificateFile: WINDOWS_CERT_FILE, certificatePassword: process.env.WINDOWS_CERT_PASSWORD }),
+      ...(process.env.WINDOWS_SIGNTOOL_PATH ? { signToolPath: process.env.WINDOWS_SIGNTOOL_PATH } : {}),
+      ...(process.env.WINDOWS_TIMESTAMP_SERVER ? { timestampServer: process.env.WINDOWS_TIMESTAMP_SERVER } : {}),
+      description: 'DBison',
+    }
+  : null;
 
-// asar kind of creates encryption around your files
-// extraResources are the files which you want to keep outside of asar
-// remember that these will be exposed to the user as well
 // Rendered from the logo by scripts/make-icons.mjs and committed.
 const ICON_BASE = path.join(__dirname, 'assets', 'icon');
 const WINDOWS_ICON = `${ICON_BASE}.ico`;
 const LINUX_ICON = `${ICON_BASE}.png`;
 
+// Everything the packaged app is made of. The rest of the repository (the Vue
+// source, tests, smoke scripts, docs, CI, build caches) stays out of it: DBison
+// is closed source, and an asar is only an archive anyone can unpack. The
+// packager hands paths over relative to the project with forward slashes, and
+// prunes node_modules to the production dependencies on its own.
+const PACKAGED = [
+  /^\/package\.json$/,
+  /^\/main\.js$/,
+  /^\/electron(\/|$)/,
+  /^\/shared$/,
+  /^\/shared\/[^/]+\.(js|html)$/,
+  /^\/assets$/,
+  // Only Linux windows are handed an icon at runtime; the packager reads the
+  // others from the project.
+  /^\/assets\/icon\.png$/,
+  // The renderer `nuxt generate` built; main.js serves it over app://.
+  /^\/\.output$/,
+  /^\/\.output\/public(\/|$)/,
+  /^\/node_modules$/,
+  /^\/node_modules\//,
+];
+
+function ignoredInPackage(file) {
+  if (!file) return false;
+  if (file.endsWith('.map')) return true;
+  // Dot-named entries under node_modules are never runtime code: .bin, .cache,
+  // npm's lock copy and half-renamed install leftovers, packages' .github.
+  if (file.startsWith('/node_modules/') && file.includes('/.')) return true;
+  return !PACKAGED.some((pattern) => pattern.test(file));
+}
+
+// The app's own main-process sources in a copied build folder.
+async function mainProcessSources(buildPath) {
+  const nested = await Promise.all(['electron', 'shared'].map(async (dir) =>
+    (await readdir(path.join(buildPath, dir), { recursive: true }))
+      .filter((file) => /\.c?js$/.test(file))
+      .map((file) => path.join(dir, file))));
+  return ['main.js', ...nested.flat()];
+}
+
 export const packagerConfig = {
   ...macSigning,
+  ...(windowsSign ? { windowsSign } : {}),
+  appCopyright: `Copyright © 2026 ${AUTHOR.name}`,
+  win32metadata: { CompanyName: AUTHOR.name, FileDescription: 'DBison' },
   // Without an extension: the packager takes icon.ico on Windows and
   // icon.icns on macOS.
   icon: ICON_BASE,
@@ -58,11 +124,8 @@ export const packagerConfig = {
     // driver rewrites app.asar -> app.asar.unpacked to find it.
     unpack: '**/electron/drivers/**',
   },
-  // Ship the built Nitro server alongside the asar; main.js runs it from
-  // process.resourcesPath. Requires `nuxt build` before packaging.
-  extraResource: [
-    path.join(__dirname, '.output'),
-  ],
+  // Requires `nuxt generate` before packaging, for .output/public.
+  ignore: ignoredInPackage,
 };
 export const rebuildConfig = {};
 
@@ -96,7 +159,7 @@ export const makers = [
     name: '@electron-forge/maker-squirrel',
     platforms: ['win32'],
     config: {
-      ...windowsSigning,
+      ...(windowsSign ? { windowsSign } : {}),
       // The Squirrel package id: the install folder (%LOCALAPPDATA%\dbison)
       // and what updates match on. Changing it would install a second copy.
       name: 'dbison',
@@ -115,7 +178,14 @@ export const makers = [
   },
   {
     name: '@electron-forge/maker-deb',
-    config: { options: { icon: LINUX_ICON, genericName: 'Database Client', categories: ['Development'] } },
+    config: {
+      options: {
+        icon: LINUX_ICON,
+        genericName: 'Database Client',
+        categories: ['Development'],
+        ...(AUTHOR.email ? { maintainer: `${AUTHOR.name} <${AUTHOR.email}>` } : {}),
+      },
+    },
   },
   {
     name: '@electron-forge/maker-rpm',
@@ -130,6 +200,27 @@ async function sha512(file) {
 }
 
 export const hooks = {
+  // The main process is plain JavaScript that runs as written from source. The
+  // packaged copy is minified file by file, which drops the comments and local
+  // names but keeps the module layout the code relies on: relative imports,
+  // the SQLite worker's own file, the preload path. The renderer arrives
+  // minified from the Nuxt build already.
+  packageAfterCopy: async (_forgeConfig, buildPath) => {
+    const files = await mainProcessSources(buildPath);
+    await Promise.all(files.map(async (relative) => {
+      const file = path.join(buildPath, relative);
+      const { code } = await transform(await readFile(file, 'utf8'), {
+        loader: 'js',
+        minify: true,
+        // Error classes and logged function names stay readable.
+        keepNames: true,
+        legalComments: 'none',
+        target: 'node22',
+      });
+      await writeFile(file, code);
+    }));
+  },
+
   // Linux has no Squirrel: installed apps run electron-updater, which reads
   // latest-linux.yml next to the packages. It lists the .deb and .rpm of one
   // arch together, so it is attached to the first Linux result of that arch
@@ -181,9 +272,13 @@ export const plugins = [
   // at package time, before code signing the application
   new FusesPlugin({
     version: FuseVersion.V1,
-    // main.js re-spawns this binary as node to run the Nitro server,
-    // so this fuse has to stay enabled.
-    [FuseV1Options.RunAsNode]: true,
+    // Nothing runs this binary as node (the renderer is served from the asar
+    // over app://), so it cannot be borrowed as a signed Node runtime either.
+    [FuseV1Options.RunAsNode]: false,
+    // file:// pages get no more than a browser gives them, and cannot read
+    // inside the asar. Packaged builds load no file:// page; the renderer
+    // comes over app:// (main.js).
+    [FuseV1Options.GrantFileProtocolExtraPrivileges]: false,
     [FuseV1Options.EnableCookieEncryption]: true,
     [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
     [FuseV1Options.EnableNodeCliInspectArguments]: false,

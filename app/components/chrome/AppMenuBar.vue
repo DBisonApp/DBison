@@ -31,7 +31,7 @@ const {
   cycleTabs,
 } = useWorkbench()
 const { activeId, profiles, importProfiles, exportProfiles } = useConnections()
-const { openConnectionDialog, openAbout, openShortcuts, openSettings } = useDialogs()
+const { openConnectionDialog, openAbout, openShortcuts, openSettings, openSupport } = useDialogs()
 const queryPanels = useQueryPanels()
 const { isAvailable, bridge } = useDatabaseBridge()
 const { settings, zoomBy, setZoom } = useSettings()
@@ -84,6 +84,7 @@ type CommandId =
   | 'resetLayout'
   | 'shortcuts'
   | 'openLog'
+  | 'support'
   | 'about'
 
 /** Which menu each command is drawn in; the palette shows it as a prefix. */
@@ -117,6 +118,7 @@ const GROUP_OF: Record<CommandId, string> = {
   resetLayout: 'View',
   shortcuts: 'Help',
   openLog: 'Help',
+  support: 'Help',
   about: 'Help',
 }
 
@@ -287,6 +289,7 @@ const commands = computed<Record<CommandId, AppCommand>>(() => ({
   shortcuts: {
     label: 'Keyboard Shortcuts',
     icon: 'keyboard',
+    keys: 'F1',
     run: () => { openShortcuts(bindings.value) },
   },
   // Reveals the app's log file in the system file manager, for the bug report
@@ -300,6 +303,11 @@ const commands = computed<Record<CommandId, AppCommand>>(() => ({
         .then(({ path }) => bridge().reveal(path))
         .catch(() => {})
     },
+  },
+  support: {
+    label: 'Support DBison',
+    icon: 'heart',
+    run: () => { openSupport() },
   },
   about: {
     label: 'About DBison',
@@ -365,10 +373,13 @@ onBeforeUnmount(unregister)
 const recentFiles = computed(() => settings.value.recentFiles)
 
 /** The bound subset, for the dialog that lists them. */
-const bindings = computed(() =>
-  bound.value
-    .filter((command) => !!command.keys)
-    .map((command) => ({ label: command.label, keys: formatKeys(command.keys!) })),
+const bindings = computed(() => [
+  ...(Object.entries(commands.value) as [CommandId, AppCommand][])
+    .map(([id, command]) => ({ ...command, group: GROUP_OF[id] })),
+  { label: 'Toggle Database Explorer', keys: explorerKeys, group: 'View' },
+]
+  .filter((command) => !!command.keys)
+  .map((command) => ({ label: command.label, keys: formatKeys(command.keys!), group: command.group })),
 )
 </script>
 
@@ -586,6 +597,10 @@ const bindings = computed(() =>
           </MenubarItem>
 
           <MenubarSeparator />
+
+          <MenubarItem :icon="commands.support.icon" @select="commands.support.run()">
+            {{ commands.support.label }}
+          </MenubarItem>
 
           <MenubarItem :icon="commands.about.icon" @select="commands.about.run()">
             {{ commands.about.label }}
