@@ -7,7 +7,7 @@
   "author": "Jan Vorisek <jan@vorisek.me>",
   "license": "UNLICENSED",
   "main": "./main.js",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "updates": {
     "bucket": "dbison-releases",
     "endpoint": "https://fra1.digitaloceanspaces.com"
