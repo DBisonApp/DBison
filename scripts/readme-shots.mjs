@@ -277,7 +277,7 @@ app.whenReady().then(async () => {
     // Monaco loads on its own schedule; retype until the query is really there.
     for (let attempt = 1; attempt <= 5; attempt++) {
       await setEditor(HERO_QUERY)
-      const lines = String(await run(`(document.querySelector('.monaco-editor .view-lines') || {}).innerText || ''`)).replace(/ /g, ' ')
+      const lines = String(await run(`(document.querySelector('.monaco-editor .view-lines') || {}).innerText || ''`)).replace(/\u00a0/g, ' ')
       console.log('editor attempt', attempt, /from customers c/.test(lines))
       if (/from customers c/.test(lines)) break
       await wait(2000)
