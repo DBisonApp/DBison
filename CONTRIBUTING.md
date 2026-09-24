@@ -23,12 +23,12 @@ less likely to be wasted.
 ## Pull requests
 
 1. Fork the repository and branch from `main`.
-2. Set up and run the app as the [README](README.md#develop) describes.
+2. Set up and run the app as the [development guide](docs/DEVELOPMENT.md) describes.
 3. Keep the change focused on one thing, and match the style of the code around
    it.
 4. Make sure `npm run lint`, `npm run typecheck` and `npm test` pass. If you
    touched the UI or a driver, run the relevant smoke script as well (see
-   [Smoke tests](README.md#smoke-tests)).
+   [Smoke tests](docs/DEVELOPMENT.md#smoke-tests)).
 5. Open the pull request and describe what changed and why.
 
 ### Contributor Licence Agreement
