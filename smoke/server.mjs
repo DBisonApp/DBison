@@ -5,12 +5,12 @@
  *
  *   PG_URL=postgres://user:pass@host:5432/db \
  *   MYSQL_URL=mysql://user:pass@host:3306/db \
- *   node smoke-server.mjs
+ *   node smoke/server.mjs
  *
  * Or, with a connection the app has saved (the password comes from the OS
  * keychain, so this form runs under Electron):
  *
- *   PG_PROFILE="my connection" electron smoke-server-profile.mjs
+ *   PG_PROFILE="my connection" electron smoke/server-profile.mjs
  *
  * Plain Node, no Electron: the drivers are opened directly through
  * `getDriver(...).open()`. Nothing of the user's is touched: each engine gets
@@ -20,7 +20,7 @@
  */
 import { pathToFileURL } from 'node:url'
 
-import { getDriver } from './electron/drivers/index.js'
+import { getDriver } from '../electron/drivers/index.js'
 
 const SCHEMA = 'dbison_smoke_s'
 const DATABASE = 'dbison_smoke_db'

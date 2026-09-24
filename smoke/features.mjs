@@ -9,9 +9,9 @@ import { DatabaseSync } from 'node:sqlite'
 import { readFile, rm, writeFile } from 'node:fs/promises'
 import { app, BrowserWindow } from 'electron'
 
-import { registerDatabaseIpc } from './electron/ipc.js'
+import { registerDatabaseIpc } from '../electron/ipc.js'
 
-const ROOT = fileURLToPath(new URL('.', import.meta.url))
+const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const APP_URL = process.env.APP_URL ?? 'http://[::1]:3113'
 const DB_FILE = path.join(process.env.TEMP, 'dbison-features.sqlite')
 

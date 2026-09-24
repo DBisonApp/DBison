@@ -1,15 +1,15 @@
 // Exercises View > Reset Layout: it must put the explorer back on the left
 // with a Welcome tab beside it, rather than leaving an empty window. Also
 // checks that a layout saved with everything closed does not restore blank.
-// Run: npm run dev -- --port 3113   then   node_modules/electron/dist/electron.exe smoke-resetlayout.mjs
+// Run: npm run dev -- --port 3113   then   node_modules/electron/dist/electron.exe smoke/resetlayout.mjs
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow } from 'electron'
 
-import { registerDatabaseIpc } from './electron/ipc.js'
+import { registerDatabaseIpc } from '../electron/ipc.js'
 
-const ROOT = path.dirname(fileURLToPath(import.meta.url))
+const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const URL = process.env.APP_URL ?? 'http://127.0.0.1:3113'
 const OUT = process.env.SHOT_DIR ?? path.join(ROOT, 'shots')
 

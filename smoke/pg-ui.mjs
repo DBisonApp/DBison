@@ -2,16 +2,16 @@
 // database created for the run and dropped at the end; the URL's own
 // database sees only the CREATE and DROP DATABASE statements.
 //
-//   PG_URL=postgres://user:pass@host:5432/db electron smoke-pg-ui.mjs
+//   PG_URL=postgres://user:pass@host:5432/db electron smoke/pg-ui.mjs
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { rm, writeFile } from 'node:fs/promises'
 import { app, BrowserWindow } from 'electron'
 import pg from 'pg'
 
-import { registerDatabaseIpc } from './electron/ipc.js'
+import { registerDatabaseIpc } from '../electron/ipc.js'
 
-const ROOT = fileURLToPath(new URL('.', import.meta.url))
+const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const APP_URL = process.env.APP_URL ?? 'http://[::1]:3113'
 const PG_URL = process.env.PG_URL
 const SCRATCH = 'dbison_smoke_ui'

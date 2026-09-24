@@ -3,9 +3,9 @@ import { fileURLToPath } from 'node:url'
 import { DatabaseSync } from 'node:sqlite'
 import { app, BrowserWindow } from 'electron'
 
-import { registerDatabaseIpc } from './electron/ipc.js'
+import { registerDatabaseIpc } from '../electron/ipc.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const URL = 'http://127.0.0.1:3113'
 const DB_FILE = path.join(process.env.TEMP, 'dbison-cancel-ui.sqlite')
 
@@ -26,7 +26,7 @@ app.whenReady().then(async () => {
   const win = new BrowserWindow({
     show: false, width: 1400, height: 900,
     webPreferences: {
-      preload: path.join(__dirname, 'electron', 'preload.cjs'),
+      preload: path.join(ROOT, 'electron', 'preload.cjs'),
       nodeIntegration: false, contextIsolation: true, sandbox: true,
     },
   })
@@ -124,7 +124,7 @@ app.whenReady().then(async () => {
   console.log('CONSOLE ERRORS:', JSON.stringify(errors))
 
   const image = await win.webContents.capturePage()
-  await (await import('node:fs/promises')).writeFile(path.join(__dirname, 'cancel.png'), image.toPNG())
+  await (await import('node:fs/promises')).writeFile(path.join(ROOT, 'cancel.png'), image.toPNG())
 
   await run(`window.dbison.profiles.remove(${JSON.stringify(profile.id)})`)
   app.quit()

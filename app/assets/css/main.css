@@ -442,7 +442,7 @@ option {
    * recognised and the panel is never unmounted. Every menu ever opened then
    * stays in the document, invisible and stacking up. Closing instantly is what
    * a native menu does anyway; if you add a fade here, re-run
-   * `smoke-context.mjs` and check the leftover count is still zero.
+   * `smoke/context.mjs` and check the leftover count is still zero.
    */
   .popover-panel {
     --app-pop-y: -4px;

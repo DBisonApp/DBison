@@ -1,9 +1,9 @@
 /**
- * Runs `smoke-server.mjs` against a connection the app has saved, with the
+ * Runs `smoke/server.mjs` against a connection the app has saved, with the
  * password from the OS keychain — so under Electron, never plain node:
  *
- *   PG_PROFILE="elementarium-dev" electron smoke-server-profile.mjs
- *   MYSQL_PROFILE="local mysql" electron smoke-server-profile.mjs
+ *   PG_PROFILE="elementarium-dev" electron smoke/server-profile.mjs
+ *   MYSQL_PROFILE="local mysql" electron smoke/server-profile.mjs
  *
  * The profile's database is used for exactly one statement: creating the
  * scratch database `dbison_smoke_db`. Every other statement runs in that
@@ -13,8 +13,8 @@ import path from 'node:path'
 
 import { app } from 'electron'
 
-import { ConnectionStore } from './electron/connection-store.js'
-import { failureCount, smoke } from './smoke-server.mjs'
+import { ConnectionStore } from '../electron/connection-store.js'
+import { failureCount, smoke } from './server.mjs'
 
 // The keychain key lives in the app's own user-data folder (Chromium's
 // "Local State"), so this has to be the app's folder before the app is ready.

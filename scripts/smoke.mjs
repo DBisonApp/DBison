@@ -1,7 +1,7 @@
-// Runs one of the repo-root smoke scripts under Electron:
+// Runs one of the smoke scripts in smoke/ under Electron:
 //
-//   node scripts/smoke.mjs tier1          -> smoke-tier1.mjs
-//   node scripts/smoke.mjs smoke-tier1.mjs
+//   node scripts/smoke.mjs tier1          -> smoke/tier1.mjs
+//   node scripts/smoke.mjs tier1.mjs
 //
 // The scripts drive the real app against a Nuxt dev server, which has to be
 // running already; APP_URL says where (default http://[::1]:3113). The rest of
@@ -15,12 +15,12 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const [, , name, ...rest] = process.argv
 
 if (!name) {
-  console.error('usage: node scripts/smoke.mjs <tier1|smoke-tier1.mjs> [args...]')
+  console.error('usage: node scripts/smoke.mjs <tier1|tier1.mjs> [args...]')
   process.exit(2)
 }
 
-const file = name.endsWith('.mjs') ? name : `smoke-${name}.mjs`
-const script = path.join(root, file)
+const file = name.endsWith('.mjs') ? name : `${name}.mjs`
+const script = path.join(root, 'smoke', file)
 
 if (!existsSync(script)) {
   console.error(`no such smoke script: ${script}`)

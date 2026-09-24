@@ -3,8 +3,8 @@
  * changes, CSV import, streamed export and the read-only guard, driven
  * through the ConnectionManager the way the IPC handlers drive it.
  *
- *   node smoke-backend.mjs                      # SQLite, in a temp file
- *   PG_URL=postgres://user:pass@host/db node smoke-backend.mjs
+ *   node smoke/backend.mjs                      # SQLite, in a temp file
+ *   PG_URL=postgres://user:pass@host/db node smoke/backend.mjs
  *
  * Plain Node, no Electron. With PG_URL the same checks run against Postgres
  * in a scratch database of their own (`dbison_smoke_backend`), created for
@@ -18,8 +18,8 @@ import { DatabaseSync } from 'node:sqlite'
 
 import pg from 'pg'
 
-import { ConnectionManager } from './electron/connection-manager.js'
-import { exportToFile } from './electron/export.js'
+import { ConnectionManager } from '../electron/connection-manager.js'
+import { exportToFile } from '../electron/export.js'
 
 let failures = 0
 

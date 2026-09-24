@@ -2,16 +2,16 @@
 // of sizes: empty, tiny, and large enough that the compact figure has to
 // abbreviate. ANALYZE is what puts the counts in sqlite_stat1 — without it the
 // slot is correctly blank, which is the other case worth seeing.
-// Run: npm run dev -- --port 3113   then   node_modules/electron/dist/electron.exe smoke-sidebar.mjs
+// Run: npm run dev -- --port 3113   then   node_modules/electron/dist/electron.exe smoke/sidebar.mjs
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DatabaseSync } from 'node:sqlite'
 import { app, BrowserWindow } from 'electron'
 
-import { registerDatabaseIpc } from './electron/ipc.js'
+import { registerDatabaseIpc } from '../electron/ipc.js'
 
-const ROOT = path.dirname(fileURLToPath(import.meta.url))
+const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const URL = process.env.APP_URL ?? 'http://127.0.0.1:3113'
 const OUT = process.env.SHOT_DIR ?? path.join(ROOT, 'shots')
 const DB_FILE = path.join(process.env.TEMP, 'dbison-sidebar.sqlite')

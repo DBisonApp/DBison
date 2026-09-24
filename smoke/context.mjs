@@ -1,15 +1,15 @@
 // Exercises the right-click menus: the explorer's table menu, the result
 // grid's header menu and its cell menu, plus the short menu the explorer's
 // blank space gets.
-// Run: npm run dev -- --port 3113   then   node_modules/electron/dist/electron.exe smoke-context.mjs
+// Run: npm run dev -- --port 3113   then   node_modules/electron/dist/electron.exe smoke/context.mjs
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DatabaseSync } from 'node:sqlite'
 import { app, BrowserWindow } from 'electron'
 
-import { registerDatabaseIpc } from './electron/ipc.js'
+import { registerDatabaseIpc } from '../electron/ipc.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const URL = process.env.APP_URL ?? 'http://localhost:3113'
 const DB_FILE = path.join(process.env.TEMP, 'dbison-context.sqlite')
 
@@ -41,7 +41,7 @@ app.whenReady().then(async () => {
   const win = new BrowserWindow({
     show: true, width: 1400, height: 900,
     webPreferences: {
-      preload: path.join(__dirname, 'electron', 'preload.cjs'),
+      preload: path.join(ROOT, 'electron', 'preload.cjs'),
       nodeIntegration: false, contextIsolation: true, sandbox: true,
     },
   })

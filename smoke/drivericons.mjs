@@ -1,14 +1,14 @@
 // Captures the connection switcher with one profile per engine, so all four
 // Devicon logos are seen side by side in both themes.
-// Run: APP_URL=http://[::1]:3113 node_modules/electron/dist/electron.exe smoke-drivericons.mjs
+// Run: APP_URL=http://[::1]:3113 node_modules/electron/dist/electron.exe smoke/drivericons.mjs
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow } from 'electron'
 
-import { registerDatabaseIpc } from './electron/ipc.js'
+import { registerDatabaseIpc } from '../electron/ipc.js'
 
-const ROOT = path.dirname(fileURLToPath(import.meta.url))
+const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const URL = process.env.APP_URL ?? 'http://127.0.0.1:3113'
 const OUT = process.env.SHOT_DIR ?? path.join(ROOT, 'shots')
 

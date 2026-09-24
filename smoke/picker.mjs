@@ -2,7 +2,7 @@
 // managed-host name long enough to test the truncation — with the row menu open.
 //
 // Run: npm run dev -- --port 3113   then
-//      node_modules/electron/dist/electron.exe smoke-picker.mjs
+//      node_modules/electron/dist/electron.exe smoke/picker.mjs
 //
 // If that exits with "electron does not provide an export named 'app'", the
 // shell has ELECTRON_RUN_AS_NODE=1 set (VS Code's terminal does): unset it, or
@@ -12,9 +12,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow } from 'electron'
 
-import { registerDatabaseIpc } from './electron/ipc.js'
+import { registerDatabaseIpc } from '../electron/ipc.js'
 
-const ROOT = path.dirname(fileURLToPath(import.meta.url))
+const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const URL = process.env.APP_URL ?? 'http://127.0.0.1:3113'
 const OUT = process.env.SHOT_DIR ?? path.join(ROOT, 'shots')
 
