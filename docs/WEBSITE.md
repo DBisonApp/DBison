@@ -92,7 +92,9 @@ fails if one is left over:
 | `__DOWNLOAD_CARDS__` | one card per download, rendered server-side so the page works without JavaScript |
 | `__DOWNLOADS__` | the same list as JSON, which the page's script uses to point the hero button at the visitor's platform |
 | `__SITE_URL__` | `SITE_URL`, else `https://dbison.app/` |
-| `__AUTHOR__`, `__AUTHOR_EMAIL__`, `__KOFI_URL__` | `package.json`'s `author` and `support` fields |
+| `__AUTHOR__`, `__AUTHOR_EMAIL__` | `package.json`'s `author` |
+| `__SPONSORS_URL__`, `__KOFI_URL__` | `package.json`'s `support` field: the GitHub Sponsors page, which the header's Sponsor link and the footer lead to (the Ko-fi page if none is set), and the Ko-fi page |
+| `__SOURCE_URL__` | `package.json`'s `repository`, for the GitHub and source code links |
 | `__YEAR__` | the current year, for the footer |
 
 Anything else in `site/` ships as it stands — `screenshot.png`, `robots.txt`

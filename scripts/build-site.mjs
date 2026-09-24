@@ -236,7 +236,8 @@ const replacements = {
   __AUTHOR__: author.name || 'Jan Vorisek',
   __AUTHOR_EMAIL__: author.email || '',
   __KOFI_URL__: support.kofi ?? '',
-  __SPONSORS_URL__: support.github ?? '',
+  // The main support link; Ko-fi stands in until a Sponsors page is set.
+  __SPONSORS_URL__: support.github ?? support.kofi ?? '',
   __SOURCE_URL__: source,
   __DOWNLOAD_CARDS__: downloads.map(card).join('\n'),
   __DOWNLOADS__: JSON.stringify(downloads),
