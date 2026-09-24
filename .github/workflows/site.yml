@@ -1,0 +1,57 @@
+name: Site
+
+# Builds the one-page site and deploys it to Cloudflare Pages (dbison.app).
+#
+# The page's download links come from the release bucket's own manifests, read
+# while it builds, so it is rebuilt in two situations: when the site's sources
+# change, and when a release finishes uploading — that second run is what moves
+# the page onto the new version. docs/WEBSITE.md has the setup.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'scripts/build-site.mjs'
+      - 'shared/update-feed.js'
+      - 'shared/package-meta.js'
+      - 'public/legal/**'
+      - 'LICENSE'
+      - 'assets/icon.png'
+      - 'package.json'
+      - '.github/workflows/site.yml'
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    # A release that failed has uploaded nothing to move the page onto.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The build script only uses node builtins and two files from shared/,
+      # so there is nothing to install.
+      - run: node scripts/build-site.mjs
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site-dist --project-name=dbison --branch=main --commit-dirty=true

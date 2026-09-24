@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DBison — a database workspace that stays out of the way</title>
+    <meta
+      name="description"
+      content="A desktop client for PostgreSQL, MySQL, MariaDB and SQLite: one explorer, a query editor with schema-aware completion, and a grid that edits in place. No accounts, no telemetry."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0d1120" />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="icon" href="icon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="icon.png" />
+    <link rel="canonical" href="__SITE_URL__" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="DBison — a database workspace that stays out of the way" />
+    <meta
+      property="og:description"
+      content="A desktop client for PostgreSQL, MySQL, MariaDB and SQLite. No accounts, no telemetry, nothing to sign up for."
+    />
+    <meta property="og:url" content="__SITE_URL__" />
+    <meta property="og:image" content="__SITE_URL__screenshot.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <style>
+      /* Palette lifted from the app itself (app/assets/css/main.css), so the
+       * site and the product read as one thing. Dark is the default; light
+       * follows the system unless the toggle has stored a choice. */
+      :root,
+      [data-theme='dark'] {
+        color-scheme: dark;
+
+        --bg: #0d1120;
+        --sunken: #080b14;
+        --surface: #141a2c;
+        --raised: #1d2540;
+        --border: #222b45;
+        --border-strong: #33406a;
+
+        --text: #e8ecf6;
+        --muted: #98a2c0;
+        --faint: #66708e;
+
+        --accent: #8b5cf6;
+        --accent-bright: #a78bfa;
+        --accent-alt: #e879f9;
+        --accent-text: #ffffff;
+        --accent-soft: rgb(139 92 246 / 0.16);
+        --accent-line: rgb(139 92 246 / 0.42);
+
+        --warm: #e8a33d;
+        --success: #34d399;
+
+        --shadow-md: 0 4px 14px -2px rgb(0 0 0 / 0.5);
+        --shadow-lg: 0 18px 48px -12px rgb(0 0 0 / 0.7), 0 2px 8px rgb(0 0 0 / 0.4);
+        --bevel: rgb(255 255 255 / 0.06);
+        --glow: radial-gradient(60% 60% at 50% 0%, rgb(139 92 246 / 0.22), transparent 70%);
+      }
+
+      [data-theme='light'] {
+        color-scheme: light;
+
+        --bg: #ffffff;
+        --sunken: #eceff7;
+        --surface: #f7f8fc;
+        --raised: #e7ecf8;
+        --border: #dbe0ee;
+        --border-strong: #b9c2da;
+
+        --text: #171b2b;
+        --muted: #565f7e;
+        --faint: #8892ae;
+
+        --accent: #6d3bf0;
+        --accent-bright: #5a24e8;
+        --accent-alt: #b14fe0;
+        --accent-text: #ffffff;
+        --accent-soft: rgb(109 59 240 / 0.12);
+        --accent-line: rgb(109 59 240 / 0.35);
+
+        --warm: #b9701a;
+        --success: #12805a;
+
+        --shadow-md: 0 4px 14px -2px rgb(23 27 43 / 0.12);
+        --shadow-lg: 0 18px 48px -12px rgb(23 27 43 / 0.24), 0 2px 8px rgb(23 27 43 / 0.08);
+        --bevel: rgb(255 255 255 / 0.9);
+        --glow: radial-gradient(60% 60% at 50% 0%, rgb(109 59 240 / 0.1), transparent 70%);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, 'Segoe UI', Inter, Roboto, 'Helvetica Neue', Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: var(--accent-bright);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      code,
+      kbd,
+      .mono {
+        font-family: ui-monospace, 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace;
+      }
+
+      p code {
+        font-size: 0.9em;
+        color: var(--text);
+      }
+
+      .wrap {
+        width: 100%;
+        max-width: 1080px;
+        margin: 0 auto;
+        padding-inline: 20px;
+      }
+
+      /* Header ------------------------------------------------------------ */
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: color-mix(in srgb, var(--bg) 86%, transparent);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        height: 60px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text);
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        font-size: 15px;
+      }
+
+      .brand:hover {
+        text-decoration: none;
+      }
+
+      .brand img {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+      }
+
+      nav {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      nav a,
+      .icon-btn {
+        color: var(--muted);
+        font-size: 14px;
+        padding: 6px 10px;
+        border-radius: 6px;
+      }
+
+      nav a:hover,
+      .icon-btn:hover {
+        color: var(--text);
+        background: var(--surface);
+        text-decoration: none;
+      }
+
+      .icon-btn {
+        display: inline-flex;
+        align-items: center;
+        background: none;
+        border: 0;
+        cursor: pointer;
+        font: inherit;
+        font-size: 14px;
+      }
+
+      /* The bar is the one row that cannot wrap, so the optional links step
+       * aside on a phone and leave Download and the theme toggle. */
+      @media (max-width: 560px) {
+        nav a.hide-sm {
+          display: none;
+        }
+      }
+
+      /* Hero -------------------------------------------------------------- */
+
+      .hero {
+        position: relative;
+        text-align: center;
+        padding-block: 72px 48px;
+        overflow: hidden;
+      }
+
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: -40% 0 auto;
+        height: 520px;
+        background: var(--glow);
+        pointer-events: none;
+      }
+
+      .hero > * {
+        position: relative;
+      }
+
+      .mark {
+        width: 84px;
+        height: 84px;
+        border-radius: 20px;
+        box-shadow: var(--shadow-lg);
+      }
+
+      h1 {
+        margin: 22px 0 0;
+        font-size: clamp(30px, 5vw, 46px);
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        font-weight: 700;
+      }
+
+      h1 .grad {
+        background-image: linear-gradient(135deg, var(--accent) 0%, var(--accent-alt) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .lede {
+        margin: 16px auto 0;
+        max-width: 620px;
+        color: var(--muted);
+        font-size: clamp(16px, 2.2vw, 18px);
+      }
+
+      .engines {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 24px;
+      }
+
+      .engines span {
+        border: 1px solid var(--border);
+        background: var(--surface);
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      /* Buttons ----------------------------------------------------------- */
+
+      .cta {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        margin-top: 30px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 8px;
+        padding: 11px 20px;
+        font-size: 15px;
+        font-weight: 600;
+        border: 1px solid transparent;
+        cursor: pointer;
+      }
+
+      .btn:hover {
+        text-decoration: none;
+      }
+
+      .btn-primary {
+        background-image: linear-gradient(135deg, var(--accent) 0%, var(--accent-alt) 100%);
+        color: var(--accent-text);
+        box-shadow: 0 6px 20px -6px var(--accent-line);
+      }
+
+      .btn-primary:hover {
+        filter: brightness(1.08);
+      }
+
+      .btn-ghost {
+        border-color: var(--border-strong);
+        color: var(--text);
+        background: var(--surface);
+      }
+
+      .btn-ghost:hover {
+        border-color: var(--accent-line);
+      }
+
+      .meta {
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--faint);
+      }
+
+      .meta a {
+        color: var(--muted);
+      }
+
+      /* Screenshot -------------------------------------------------------- */
+
+      .shot {
+        margin-top: 56px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--sunken);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .shot-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .shot-bar i {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--border-strong);
+      }
+
+      .shot img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      /* Sections ---------------------------------------------------------- */
+
+      section {
+        padding-block: 64px;
+      }
+
+      section + section {
+        border-top: 1px solid var(--border);
+      }
+
+      h2 {
+        margin: 0;
+        font-size: clamp(22px, 3.4vw, 30px);
+        letter-spacing: -0.01em;
+      }
+
+      .sub {
+        margin: 10px 0 0;
+        color: var(--muted);
+        max-width: 620px;
+      }
+
+      .grid > *,
+      .downloads > *,
+      .notes > * {
+        min-width: 0;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+        margin-top: 32px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        background: var(--surface);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: inset 0 1px 0 var(--bevel);
+      }
+
+      .card h3 {
+        margin: 0 0 6px;
+        font-size: 16px;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14.5px;
+      }
+
+      .card .tag {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent-bright);
+      }
+
+      /* Privacy strip ------------------------------------------------------ */
+
+      .strip {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        border: 1px solid var(--accent-line);
+        background: var(--accent-soft);
+        border-radius: 12px;
+        padding: 22px 24px;
+      }
+
+      .strip h2 {
+        font-size: clamp(18px, 2.6vw, 22px);
+      }
+
+      .strip p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 14.5px;
+      }
+
+      /* Downloads --------------------------------------------------------- */
+
+      .downloads {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 16px;
+        margin-top: 32px;
+      }
+
+      .dl {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        border-radius: 10px;
+        padding: 18px 20px;
+      }
+
+      .dl[data-current='true'] {
+        border-color: var(--accent-line);
+        box-shadow: 0 0 0 1px var(--accent-line);
+      }
+
+      .dl .os {
+        font-weight: 600;
+      }
+
+      .dl .file {
+        font-size: 12.5px;
+        color: var(--faint);
+        word-break: break-all;
+      }
+
+      .dl .get {
+        margin-top: 10px;
+        align-self: flex-start;
+      }
+
+      .notes {
+        margin-top: 28px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+      }
+
+      .note {
+        border-left: 2px solid var(--border-strong);
+        padding-left: 14px;
+      }
+
+      .note h3 {
+        margin: 0 0 4px;
+        font-size: 14px;
+      }
+
+      .note p {
+        margin: 0;
+        font-size: 13.5px;
+        color: var(--muted);
+      }
+
+      .cmd {
+        display: block;
+        margin-top: 8px;
+        padding: 8px 10px;
+        background: var(--sunken);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 12px;
+        line-height: 1.7;
+        color: var(--text);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      /* Footer ------------------------------------------------------------ */
+
+      footer {
+        border-top: 1px solid var(--border);
+        padding-block: 32px 48px;
+        color: var(--faint);
+        font-size: 14px;
+      }
+
+      .foot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 20px;
+        align-items: center;
+      }
+
+      .foot nav {
+        gap: 20px;
+      }
+
+      .foot a {
+        color: var(--muted);
+        padding: 0;
+      }
+
+      .foot a:hover {
+        background: none;
+        color: var(--text);
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <div class="wrap bar">
+        <a class="brand" href="#top"><img src="icon.png" alt="" width="26" height="26" />DBISON</a>
+        <nav>
+          <a class="hide-sm" href="#features">Features</a>
+          <a href="#download">Download</a>
+          <a class="hide-sm" href="__SOURCE_URL__">GitHub</a>
+          <a class="hide-sm" href="__KOFI_URL__">Support</a>
+          <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark">◐</button>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <div class="wrap">
+        <div class="hero">
+          <img class="mark" src="icon.png" alt="The DBison bison mark" width="84" height="84" />
+          <h1>A database workspace that <span class="grad">stays out of the way</span></h1>
+          <p class="lede">
+            One explorer, a query editor that knows your schema, and a grid that edits in place. A desktop app for
+            PostgreSQL, MySQL, MariaDB and SQLite — no accounts, no telemetry, nothing to sign up for.
+          </p>
+
+          <div class="engines">
+            <span>PostgreSQL</span><span>MySQL</span><span>MariaDB</span><span>SQLite</span>
+          </div>
+
+          <div class="cta">
+            <a class="btn btn-primary" id="hero-download" href="#download">Download DBison</a>
+            <a class="btn btn-ghost" href="#download">All platforms</a>
+          </div>
+
+          <p class="meta">
+            Version __VERSION__ · released __RELEASE_DATE__ ·
+            <span id="hero-meta">Windows, macOS and Linux</span>
+          </p>
+        </div>
+
+        <figure class="shot" style="margin: 56px 0 0">
+          <div class="shot-bar"><i></i><i></i><i></i></div>
+          <img
+            src="screenshot.png"
+            alt="DBison showing a PostgreSQL connection: the explorer lists tables, views, functions, sequences and triggers beside the welcome tab"
+            width="2854"
+            height="1402"
+            loading="lazy"
+          />
+        </figure>
+      </div>
+
+      <section id="features">
+        <div class="wrap">
+          <h2>What you get</h2>
+          <p class="sub">Everything below ships in the build you download. No tiers, no cloud half.</p>
+
+          <div class="grid">
+            <div class="card">
+              <span class="tag">Explorer</span>
+              <h3>Fuzzy filter over everything</h3>
+              <p>
+                Tables, views, columns, functions, sequences and triggers in one tree, filtered as you type and fully
+                keyboard-driven.
+              </p>
+            </div>
+            <div class="card">
+              <span class="tag">Editor</span>
+              <h3>Completion from the live schema</h3>
+              <p>
+                Monaco with foreign-key-aware JOIN suggestions, run-statement-at-cursor, whole-script runs with a result
+                tab per statement, EXPLAIN, bind parameters and manual transactions.
+              </p>
+            </div>
+            <div class="card">
+              <span class="tag">Grid</span>
+              <h3>Edits staged, then one transaction</h3>
+              <p>
+                Quick filters, selection statistics, paste from a spreadsheet, copy as INSERT / Markdown / JSON / CSV,
+                pinned columns and a full-value viewer with a JSON tree.
+              </p>
+            </div>
+            <div class="card">
+              <span class="tag">Tables</span>
+              <h3>Server-side sort and paging</h3>
+              <p>
+                A WHERE box, an on-demand exact count, Structure and DDL views, and a record view (F4) that shows the
+                focused row as a form beside the grid.
+              </p>
+            </div>
+            <div class="card">
+              <span class="tag">Schema</span>
+              <h3>Structure editing that shows its SQL</h3>
+              <p>
+                Add, rename, change and drop columns, create and drop indexes, rename or drop tables, create tables from
+                a form — every change previews the statement before it runs.
+              </p>
+            </div>
+            <div class="card">
+              <span class="tag">Plans</span>
+              <h3>Visual EXPLAIN</h3>
+              <p>
+                The plan as a tree with rows, cost and per-node time bars, on Postgres, MySQL, MariaDB and SQLite alike.
+              </p>
+            </div>
+            <div class="card">
+              <span class="tag">Data</span>
+              <h3>Import, export, backup</h3>
+              <p>
+                Load a CSV with column mapping in one transaction; stream every row of a table or query to CSV, TSV,
+                JSON or INSERTs; run the engine's own pg_dump, mysqldump or sqlite3 with your connection's settings.
+              </p>
+            </div>
+            <div class="card">
+              <span class="tag">Safety</span>
+              <h3>Guard rails where they matter</h3>
+              <p>
+                A DELETE or UPDATE without a WHERE asks first. A read-only connection is enforced by the main process,
+                not just the dialog. Unsaved work asks before a tab or the window closes.
+              </p>
+            </div>
+            <div class="card">
+              <span class="tag">Connections</span>
+              <h3>Keychain, SSH tunnels, SSL</h3>
+              <p>
+                Passwords live in the OS keychain, never in plain text. Folders, colours, connection URLs you can paste,
+                import and export of profiles (<code>.pgpass</code> included), and tabs and splits that survive a
+                restart.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <div class="strip">
+            <div>
+              <h2>No accounts. No telemetry. No analytics.</h2>
+              <p>
+                Connection profiles, saved queries, history and layout stay in DBison's folder on your computer. The
+                only thing it talks to besides your databases is the update check.
+                <a href="legal/privacy.txt">Read the privacy statement</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="download">
+        <div class="wrap">
+          <h2>Download DBison __VERSION__</h2>
+          <p class="sub">
+            Released __RELEASE_DATE__. Installed builds check for updates hourly and offer to restart into the new one.
+          </p>
+
+          <div class="downloads" id="download-list">__DOWNLOAD_CARDS__</div>
+
+          <div class="notes">
+            <div class="note">
+              <h3>Windows</h3>
+              <p>
+                Builds are not code-signed yet, so SmartScreen shows “Windows protected your PC” on first run: choose
+                <strong>More info → Run anyway</strong>. Updates arrive by themselves afterwards.
+              </p>
+            </div>
+            <div class="note">
+              <h3>macOS</h3>
+              <p>
+                Unzip into <code>/Applications</code>, then allow it once under System Settings → Privacy &amp; Security
+                → Open Anyway, or run:
+              </p>
+              <code class="cmd">xattr -dr com.apple.quarantine /Applications/DBison.app</code>
+            </div>
+            <div class="note">
+              <h3>Linux</h3>
+              <p>Install the package with your package manager; DBison then updates itself from the same place.</p>
+              <code class="cmd">sudo apt install ./dbison_*.deb
+sudo rpm -U dbison-*.rpm</code>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap foot">
+        <span>© __YEAR__ __AUTHOR__</span>
+        <nav>
+          <a href="legal/license.txt">Licence (AGPL-3.0)</a>
+          <a href="legal/privacy.txt">Privacy</a>
+          <a href="__SOURCE_URL__">Source code</a>
+          <a href="__SPONSORS_URL__">Sponsor</a>
+          <a href="__KOFI_URL__">Ko-fi</a>
+          <a href="mailto:__AUTHOR_EMAIL__">Contact</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      // The downloads the build script found in the release bucket. The cards
+      // above are rendered from the same data, so the page works without this.
+      const DOWNLOADS = __DOWNLOADS__;
+
+      // Theme: follow the system until someone picks a side, then remember it.
+      const root = document.documentElement;
+      let stored = null;
+      try {
+        stored = localStorage.getItem('dbison-theme');
+      } catch {}
+      const system = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      root.dataset.theme = stored || system;
+      document.getElementById('theme').addEventListener('click', () => {
+        const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        root.dataset.theme = next;
+        try {
+          localStorage.setItem('dbison-theme', next);
+        } catch {}
+      });
+
+      // Point the hero button at the build for the visitor's platform, and mark
+      // its card. Anything unrecognised keeps the "all platforms" jump.
+      const ua = navigator.userAgent;
+      const platform = navigator.userAgentData?.platform || navigator.platform || '';
+      const guess = /Mac|iPhone|iPad/i.test(platform + ua)
+        ? 'macos'
+        : /Win/i.test(platform + ua)
+          ? 'windows'
+          : /Linux|X11/i.test(platform + ua) && !/Android/i.test(ua)
+            ? /rpm|fedora|suse|red hat/i.test(ua)
+              ? 'linux-rpm'
+              : 'linux-deb'
+            : null;
+
+      const pick = guess && DOWNLOADS.find((d) => d.id === guess);
+      if (pick) {
+        const button = document.getElementById('hero-download');
+        button.href = pick.url;
+        button.textContent = 'Download for ' + pick.os;
+        button.setAttribute('download', '');
+        document.getElementById('hero-meta').textContent = pick.arch + ' · ' + pick.size;
+        const card = document.querySelector('.dl[data-id="' + pick.id + '"]');
+        if (card) {
+          card.dataset.current = 'true';
+          document.getElementById('download-list').prepend(card);
+        }
+      }
+    </script>
+  </body>
+</html>
