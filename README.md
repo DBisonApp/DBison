@@ -2,6 +2,8 @@
 
 A desktop database client for PostgreSQL, MySQL, MariaDB and SQLite that stays out of the way: one explorer, a query editor with schema-aware completion, and a grid that edits in place.
 
+Free and open source under the [AGPL-3.0](LICENSE). Download it from [dbison.app](https://dbison.app).
+
 ## What it does
 
 - **Connections** with per-connection colour and a read-only guard, SSL verification and certificates, SSH tunnels, and connection URLs you can paste. Passwords are stored through the OS keychain, never in plain text.
@@ -68,9 +70,17 @@ npm run make       # installers for the current platform
 
 Both run `nuxt generate` first. The packaged app contains only `main.js`, `electron/`, the `shared/` runtime files, the Linux icon, the generated renderer (`.output/public`) and the production dependencies; `forge.config.js` whitelists them and minifies the main-process sources in the packaged copy. The renderer is served from inside the asar over the app's own `app://dbison` protocol, so no port is opened. Anything the running app needs at runtime must be added to `PACKAGED` in `forge.config.js` and, if it is an npm package the main process imports, listed under `dependencies` (everything bundled into the renderer belongs in `devDependencies`).
 
-The legal documents live in `public/legal/` (licence agreement, privacy statement); `third-party-notices.txt` is generated during the build by `modules/legal` and shown under Help ▸ About DBison.
+The privacy statement lives in `public/legal/`. `modules/legal` serves it together with `license.txt`, which is copied from `LICENSE`, and `third-party-notices.txt`, which is generated during the build. All three are shown under Help ▸ About DBison.
 
 Releases are built and published by `.github/workflows/release.yml` on a `v*` tag; they are uploaded to an S3-compatible bucket (e.g. DigitalOcean Spaces) that packaged builds auto-update from once `package.json` names it under `updates`. See `docs/RELEASING.md` for the fields and secrets involved.
+
+## Website
+
+`site/index.html` is the public one-pager at <https://dbison.app>, built by
+`npm run site` into `site-dist/` and deployed to Cloudflare Pages by
+`.github/workflows/site.yml`. Its download links are read from the release
+bucket's manifests while it builds, so a release moves the page onto the new
+version without an edit. See `docs/WEBSITE.md`.
 
 ## Layout
 
@@ -78,3 +88,19 @@ Releases are built and published by `.github/workflows/release.yml` on a `v*` ta
 - `shared/` — the IPC contract both sides import.
 - `app/` — the Nuxt renderer: components, composables, utilities.
 - `tests/` — Vitest unit tests for the pure utilities.
+
+## Contributing
+
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Contributors sign a [CLA](CLA.md) once, from the pull request. Report security problems privately, as [SECURITY.md](SECURITY.md) describes.
+
+## Support DBison
+
+DBison is built by one person and has no ads, no telemetry and no account. If it saves you time, you can support it through [GitHub Sponsors](https://github.com/sponsors/janvorisek) or [Ko-fi](https://ko-fi.com/janvorisek), or with Bitcoin from Help ▸ Support DBison in the app. A star on GitHub helps too.
+
+## Licence
+
+Copyright © 2026 Jan Vorisek.
+
+DBison is free software: you can redistribute it and/or modify it under the terms of the [GNU Affero General Public License, version 3](LICENSE), as published by the Free Software Foundation. It is distributed in the hope that it will be useful, but without any warranty; without even the implied warranty of merchantability or fitness for a particular purpose.
+
+For licensing under other terms, such as a commercial licence, contact jan@vorisek.me.

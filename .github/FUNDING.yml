@@ -1,0 +1,4 @@
+# The Sponsor button on the repository page. Keep in step with package.json's
+# `support` field, which the app's Support dialog and the website read.
+github: janvorisek
+ko_fi: janvorisek

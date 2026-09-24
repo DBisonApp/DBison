@@ -26,5 +26,11 @@ logs
 # electron-forge output
 out
 
+# Built website (scripts/build-site.mjs)
+site-dist
+
 # Screenshots from the smoke scripts
 shots
+
+# Editor settings
+.vscode

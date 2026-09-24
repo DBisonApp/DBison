@@ -2,7 +2,7 @@
 import { useModalContext } from '@kolirt/vue-modal'
 
 /** What "About DBison" opens. The Help item used to have no action at all. */
-defineProps<{ version: string, author: { name: string, email: string | null } }>()
+defineProps<{ version: string, author: { name: string, email: string | null }, source: string | null }>()
 
 defineOptions({ modalGroup: 'dialog' })
 
@@ -36,7 +36,7 @@ function openLogFolder() {
  * shows one in place of its own content, so it needs no second modal.
  */
 const DOCUMENTS = {
-  'eula': 'Licence agreement',
+  'license': 'Licence',
   'privacy': 'Privacy',
   'third-party-notices': 'Third-party notices',
 } as const
@@ -93,8 +93,16 @@ async function showDocument(name: LegalDocument) {
             <a :href="`mailto:${author.email}`" target="_blank" class="selectable text-accent-bright hover:underline">{{ author.email }}</a>
           </template>
         </p>
+        <!-- The notices the AGPL asks an interactive program to show: the
+             copyright, that there is no warranty, the licence and where the
+             source is. -->
         <p class="text-faint">
-          © 2026 {{ author.name }}. All rights reserved.
+          © 2026 {{ author.name }}. Free software under the GNU Affero General
+          Public License, version 3, with no warranty.<template v-if="source">
+            <!-- A new window, which the main process hands to the browser. -->
+            Source code on
+            <a :href="source" target="_blank" class="text-accent-bright hover:underline">GitHub</a>.
+          </template>
         </p>
       </div>
 

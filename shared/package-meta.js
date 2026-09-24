@@ -38,6 +38,39 @@ function kofiUrl(value) {
   return match ? `https://ko-fi.com/${match[1]}` : null
 }
 
+// GitHub's own rule for user and organisation names: alphanumerics and single
+// hyphens, not at either end, at most 39 characters.
+const GITHUB_NAME = '[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}'
+
+/**
+ * The GitHub Sponsors page, from a username ("janvorisek") or the page's URL.
+ * Anything else is ignored, for the same reason as `kofiUrl`.
+ */
+function githubSponsorsUrl(value) {
+  const input = text(value)
+  if (new RegExp(`^${GITHUB_NAME}$`).test(input)) return `https://github.com/sponsors/${input}`
+
+  const match = new RegExp(`^https://github\\.com/sponsors/(${GITHUB_NAME})/?$`, 'i').exec(input)
+  return match ? `https://github.com/sponsors/${match[1]}` : null
+}
+
+/**
+ * The public source repository as a browsable https://github.com URL, from
+ * package.json's `repository` in any of npm's forms (`owner/repo`,
+ * `github:owner/repo`, a git URL, or an object with `url`), or null when it
+ * names nothing on GitHub. The About dialog links to it, as the AGPL expects
+ * a program's users to be told where its source is.
+ * @returns {string | null}
+ */
+export function sourceUrl(pkg) {
+  const repository = pkg?.repository
+  const input = text(typeof repository === 'object' && repository ? repository.url : repository)
+  const match = new RegExp(
+    `^(?:github:|(?:git\\+)?https://github\\.com/|git@github\\.com:)?(${GITHUB_NAME})/([A-Za-z0-9._-]+?)(?:\\.git)?/?$`,
+  ).exec(input)
+  return match ? `https://github.com/${match[1]}/${match[2]}` : null
+}
+
 // --- Bitcoin addresses -------------------------------------------------------
 //
 // A mistyped address sends money nowhere, so a Bitcoin address in package.json
@@ -130,8 +163,9 @@ export function isValidBitcoinAddress(address) {
  * The ways to support DBison that are actually set up, from package.json's
  * `support` field.
  *
- * `kofi` is the Ko-fi page supporters are sent to, in their browser; Ko-fi
- * takes one-off tips of any amount and monthly support there. Each crypto
+ * `github` is the GitHub Sponsors page and `kofi` the Ko-fi page, both opened
+ * in the browser; Ko-fi takes one-off tips of any amount and monthly support,
+ * GitHub Sponsors monthly or one-time sponsorships. Each crypto
  * entry needs its network as well as its address, because coins sent over
  * the wrong network are lost. An entry left empty is skipped, so the
  * placeholders in package.json show up as "coming soon" until filled in; a
@@ -139,7 +173,7 @@ export function isValidBitcoinAddress(address) {
  *
  * Bitcoin entries also get a BIP 21 `bitcoin:` link, which the Support dialog
  * puts in its QR code and hands to a wallet app.
- * @returns {{ kofi: string | null, crypto: { name: string, network: string, address: string, uri: string | null }[] }}
+ * @returns {{ github: string | null, kofi: string | null, crypto: { name: string, network: string, address: string, uri: string | null }[] }}
  */
 export function supportOptions(pkg) {
   const support = pkg?.support ?? {}
@@ -155,5 +189,5 @@ export function supportOptions(pkg) {
       return { ...entry, uri: `bitcoin:${entry.address}` }
     })
 
-  return { kofi: kofiUrl(support.kofi), crypto }
+  return { github: githubSponsorsUrl(support.github), kofi: kofiUrl(support.kofi), crypto }
 }

@@ -131,6 +131,8 @@ const ICONS = {
   messageHeart: 'lucide:message-circle-heart',
   /** Crypto addresses support can be sent to. */
   coins: 'lucide:coins',
+  /** The source repository and GitHub Sponsors. */
+  github: 'lucide:github',
 } as const
 
 export type IconName = keyof typeof ICONS

@@ -34,7 +34,7 @@ const PROFILES = [
   },
   { id: 'p2', name: 'Local dev', driver: 'postgres', host: 'localhost', port: 5432, database: 'app_dev', username: 'postgres' },
   { id: 'p3', name: 'Analytics replica', driver: 'mysql', host: 'analytics-replica-eu-west-1.cluster-ro-cxyz123abc.eu-west-1.rds.amazonaws.com', port: 3306, database: 'warehouse', username: 'reader' },
-  { id: 'p4', name: 'Scratch', driver: 'sqlite', file: 'C:/Users/jan/Documents/notes/scratchpad-experiments.sqlite3' },
+  { id: 'p4', name: 'Scratch', driver: 'sqlite', file: 'C:/Users/alice/Documents/notes/scratchpad-experiments.sqlite3' },
   { id: 'p5', name: 'Staging', driver: 'mariadb', host: 'staging.internal', port: 3306, database: 'shop', username: 'root' },
   { id: 'p6', name: 'Legacy billing', driver: 'mysql', host: '10.0.14.221', port: 3306, database: 'billing_legacy_2019', username: 'svc_billing' },
 ]

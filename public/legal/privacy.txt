@@ -1,6 +1,6 @@
 DBison Privacy Statement
 
-Last updated: 14 September 2026
+Last updated: 24 September 2026
 
 In short: DBison has no accounts, no telemetry and no analytics. What you do in
 it stays on your computer, apart from the connections you open yourself and the
@@ -28,10 +28,11 @@ Network connections DBison makes
     request identifies your platform and processor architecture and may
     include the installed DBison version.
   - Links you open from DBison are handed to your web browser.
-  - "Support on Ko-fi" opens DBison's Ko-fi page in your web browser. A tip,
-    and any payment or contact details you enter there, are handled by Ko-fi
-    and its payment providers (such as Stripe or PayPal) under their own
-    privacy policies; DBison never receives them.
+  - "Support on Ko-fi" and "Sponsor on GitHub" open DBison's Ko-fi and GitHub
+    Sponsors pages in your web browser. A tip or sponsorship, and any payment
+    or contact details you enter there, are handled by Ko-fi, GitHub and their
+    payment providers (such as Stripe or PayPal) under their own privacy
+    policies; DBison never receives them.
   - Crypto addresses are shown in the app with a QR code, drawn on your
     computer, for you to copy or scan. "Open in wallet" hands a bitcoin:
     payment link to the wallet app installed on your computer. DBison

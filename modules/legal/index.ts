@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { addVitePlugin, defineNuxtModule } from '@nuxt/kit'
@@ -7,9 +7,11 @@ import { parseAuthor } from '../../shared/package-meta.js'
 import { formatNotices, noticeFor, packageDirFromModuleId, productionPackageDirs } from './notices'
 
 /**
- * Publishes the legal documents under `/legal`: the licence agreement and the
- * privacy statement from `public/legal`, and `third-party-notices.txt`, which
- * is written here while the client bundle is built. It credits the npm
+ * Publishes the legal documents under `/legal`: the privacy statement from
+ * `public/legal`, `license.txt`, copied from the repository's LICENSE so the
+ * app shows exactly the licence the source is under, and
+ * `third-party-notices.txt`, which is written here while the client bundle is
+ * built. It credits the npm
  * packages the bundler actually put into the renderer, the files copied
  * beside it, the bundled fonts and the main process's production dependencies.
  * A dev server builds no bundle, so there the notices are whatever the last
@@ -25,10 +27,10 @@ const preamble = (author: string) => [
   [
     'DBison third-party notices',
     '',
-    `DBison is proprietary software, copyright (c) 2026 ${author}. It includes`,
-    'the open-source components listed below, each under its own licence, which',
-    'is reproduced as its authors ship it. Nothing in the DBison licence',
-    'agreement limits the rights those licences grant.',
+    `DBison is copyright (c) 2026 ${author} and licensed under the GNU Affero`,
+    'General Public License, version 3. It includes the open-source components',
+    'listed below, each under its own licence, which is reproduced as its',
+    'authors ship it.',
     '',
     'Electron and Chromium, which DBison runs on, ship their licences in the',
     'files LICENSE and LICENSES.chromium.html in the DBison installation folder.',
@@ -45,6 +47,9 @@ export default defineNuxtModule({
     const fontsDir = join(rootDir, 'modules/legal/fonts')
 
     mkdirSync(target, { recursive: true })
+    // Here rather than below the dev-server return: the licence is the same
+    // file in dev and in a build.
+    copyFileSync(join(rootDir, 'LICENSE'), join(target, 'license.txt'))
 
     nuxt.hook('nitro:config', (config) => {
       config.publicAssets ??= []

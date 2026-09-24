@@ -67,8 +67,8 @@ const WINDOWS_ICON = `${ICON_BASE}.ico`;
 const LINUX_ICON = `${ICON_BASE}.png`;
 
 // Everything the packaged app is made of. The rest of the repository (the Vue
-// source, tests, smoke scripts, docs, CI, build caches) stays out of it: DBison
-// is closed source, and an asar is only an archive anyone can unpack. The
+// source, tests, smoke scripts, docs, CI, build caches) stays out of it: none
+// of it runs, and the source is published in the repository instead. The
 // packager hands paths over relative to the project with forward slashes, and
 // prunes node_modules to the production dependencies on its own.
 const PACKAGED = [
@@ -189,8 +189,8 @@ export const makers = [
   },
   {
     name: '@electron-forge/maker-rpm',
-    // rpmbuild refuses a spec without a License tag; this is closed source.
-    config: { options: { license: 'Proprietary', icon: LINUX_ICON, genericName: 'Database Client', categories: ['Development'] } },
+    // rpmbuild refuses a spec without a License tag. SPDX, as package.json.
+    config: { options: { license: 'AGPL-3.0-only', icon: LINUX_ICON, genericName: 'Database Client', categories: ['Development'] } },
   },
 ];
 async function sha512(file) {

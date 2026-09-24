@@ -5,7 +5,15 @@
   "private": true,
   "description": "DBison is a desktop application for managing and organizing your database connections and queries.",
   "author": "Jan Vorisek <jan@vorisek.me>",
-  "license": "UNLICENSED",
+  "license": "AGPL-3.0-only",
+  "homepage": "https://dbison.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DBisonApp/dbison.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DBisonApp/dbison/issues"
+  },
   "main": "./main.js",
   "version": "0.2.0",
   "updates": {
@@ -13,22 +21,13 @@
     "endpoint": "https://fra1.digitaloceanspaces.com"
   },
   "support": {
+    "github": "janvorisek",
     "kofi": "https://ko-fi.com/janvorisek",
     "crypto": [
       {
         "name": "Bitcoin",
         "network": "Bitcoin",
         "address": "bc1qmezxqy5m3kgmeyp7vcq9ctxv7tc793snv4fzvm"
-      },
-      {
-        "name": "Ethereum",
-        "network": "Ethereum",
-        "address": ""
-      },
-      {
-        "name": "USDC",
-        "network": "Ethereum (ERC-20)",
-        "address": ""
       }
     ]
   },
@@ -42,6 +41,7 @@
     "package": "nuxt generate && electron-forge package",
     "make": "nuxt generate && electron-forge make",
     "publish": "nuxt generate && electron-forge publish",
+    "site": "node scripts/build-site.mjs",
     "smoke": "node scripts/smoke.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

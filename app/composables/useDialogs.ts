@@ -72,8 +72,8 @@ export function useDialogs() {
 
   /** The Help menu's "About DBison", which before this had no action at all. */
   function openAbout() {
-    const { version, author } = useRuntimeConfig().public
-    return openModal(AboutDialog, { props: { version, author } })
+    const { version, author, source } = useRuntimeConfig().public
+    return openModal(AboutDialog, { props: { version, author, source } })
       .catch(() => null)
   }
 
@@ -86,7 +86,7 @@ export function useDialogs() {
   function openSupport() {
     const { author, support } = useRuntimeConfig().public
     const crypto = support.crypto as { name: string, network: string, address: string, uri: string | null }[]
-    return openModal(SupportDialog, { props: { author: author.name, kofi: support.kofi, crypto } })
+    return openModal(SupportDialog, { props: { author: author.name, github: support.github, kofi: support.kofi, crypto } })
       .catch(() => null)
   }
 

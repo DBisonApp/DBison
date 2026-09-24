@@ -7,8 +7,9 @@ import { useModalContext } from '@kolirt/vue-modal'
  *
  * The options are package.json's `support` field, read through
  * `shared/package-meta.js`:
- * - the Ko-fi page, opened in the browser rather than as Ko-fi's embeddable
- *   widget, which would load Ko-fi's scripts into the app's own window;
+ * - the Ko-fi and GitHub Sponsors pages, opened in the browser rather than as
+ *   Ko-fi's embeddable widget, which would load Ko-fi's scripts into the
+ *   app's own window;
  * - crypto addresses, shown one at a time behind currency tabs so a second or
  *   third coin costs no height: a QR code for a phone wallet, a copy button,
  *   and, where the coin has a standard payment link (Bitcoin's `bitcoin:`), a
@@ -17,6 +18,7 @@ import { useModalContext } from '@kolirt/vue-modal'
  */
 const props = defineProps<{
   author: string
+  github: string | null
   kofi: string | null
   crypto: { name: string, network: string, address: string, uri: string | null }[]
 }>()
@@ -34,27 +36,28 @@ const reasons = [
 ] as const
 
 // The main process hands an http(s) or bitcoin: window.open to the system:
-// the browser for Ko-fi, the registered wallet app for a payment link.
+// the browser for Ko-fi and GitHub, the registered wallet app for a payment link.
 function openExternal(url: string) {
   window.open(url, '_blank', 'noopener')
 }
 
 /**
- * A few hearts float up from the button when someone heads to Ko-fi: a thank
- * you they see before they have paid anything. Each burst is its own set of
+ * A few hearts float up from the buttons when someone heads to Ko-fi or GitHub
+ * Sponsors: a thank you they see before they have paid anything. Each burst is its own set of
  * keys, so a second click starts fresh instead of restarting the first.
  */
 const hearts = ref<{ key: number, x: number, drift: number, delay: number, size: number }[]>([])
-const thanked = ref(false)
+/** Where the last click sent them, for the thank-you line; null before any. */
+const thankedFor = ref<string | null>(null)
 let burst = 0
 let clearTimer: number | undefined
 
-function openKofi() {
-  if (!props.kofi) return
-  openExternal(props.kofi)
+function openTip(url: string | null, site: string) {
+  if (!url) return
+  openExternal(url)
 
-  thanked.value = true
-  announce('Thank you! Ko-fi is opening in your browser.')
+  thankedFor.value = site
+  announce(`Thank you! ${site} is opening in your browser.`)
 
   burst += 1
   hearts.value = Array.from({ length: 9 }, (_, index) => ({
@@ -113,8 +116,9 @@ function onTabKey(event: KeyboardEvent) {
         </h2>
 
         <p class="max-w-lg text-muted">
-          Built by one person, {{ author }}. No ads, no telemetry, no account.
-          If DBison saves you time, a tip keeps the work going.
+          Built by one person, {{ author }}. Open source, with no ads, no
+          telemetry and no account. If DBison saves you time, a tip or a
+          sponsorship keeps the work going.
         </p>
       </header>
 
@@ -132,7 +136,7 @@ function onTabKey(event: KeyboardEvent) {
         </ul>
 
         <div class="grid gap-4 md:grid-cols-2">
-          <!-- Ko-fi: the main way in, so it carries the accent. -->
+          <!-- Ko-fi and GitHub Sponsors: the main way in, so it carries the accent. -->
           <section class="support-card support-card-primary flex flex-col gap-3 rounded-xl p-4">
             <div class="flex items-center gap-2.5">
               <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-bright">
@@ -140,10 +144,10 @@ function onTabKey(event: KeyboardEvent) {
               </span>
               <div class="grid">
                 <h3 class="font-semibold text-content">
-                  Ko-fi
+                  Tip or sponsor
                 </h3>
                 <p class="text-xs text-faint">
-                  Card or PayPal
+                  Ko-fi or GitHub Sponsors
                 </p>
               </div>
             </div>
@@ -163,15 +167,24 @@ function onTabKey(event: KeyboardEvent) {
               </li>
             </ul>
 
-            <div class="relative mt-auto">
+            <div class="relative mt-auto grid gap-2">
               <button
                 type="button"
                 class="btn btn-accent w-full justify-center gap-2 px-4 py-2.5 text-[15px] font-semibold"
                 :disabled="!kofi"
-                @click="openKofi"
+                @click="openTip(kofi, 'Ko-fi')"
               >
                 <AppIcon name="heart" :size="15" :stroke-width="2.2" />
                 {{ kofi ? 'Support on Ko-fi' : 'Coming soon' }}
+              </button>
+              <button
+                v-if="github"
+                type="button"
+                class="btn w-full justify-center gap-2 px-4 py-2"
+                @click="openTip(github, 'GitHub Sponsors')"
+              >
+                <AppIcon name="github" :size="15" />
+                Sponsor on GitHub
               </button>
 
               <span
@@ -185,9 +198,9 @@ function onTabKey(event: KeyboardEvent) {
               </span>
             </div>
 
-            <p class="-mt-1 text-xs" :class="thanked ? 'text-accent-bright' : 'text-faint'" aria-live="polite">
-              {{ thanked
-                ? 'Thank you! Ko-fi is opening in your browser.'
+            <p class="-mt-1 text-xs" :class="thankedFor ? 'text-accent-bright' : 'text-faint'" aria-live="polite">
+              {{ thankedFor
+                ? `Thank you! ${thankedFor} is opening in your browser.`
                 : 'Opens in your browser. DBison never sees your payment details.' }}
             </p>
           </section>
@@ -295,7 +308,7 @@ function onTabKey(event: KeyboardEvent) {
         <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-edge pt-4">
           <p class="flex items-center gap-2 text-muted">
             <AppIcon name="messageHeart" :size="15" class="shrink-0 text-accent-bright" />
-            Can't tip? Telling a colleague about DBison helps just as much.
+            Can't tip? A star on GitHub or telling a colleague helps just as much.
           </p>
           <button type="button" class="btn px-3 py-1.5" autofocus @click="close()">
             Close
