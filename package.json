@@ -82,7 +82,7 @@
     "@vue-flow/core": "^1.48.2",
     "@vue-flow/minimap": "^1.5.4",
     "dockview-vue": "^8.3.0",
-    "electron": "^44.3.0",
+    "electron": "^44.9.1",
     "esbuild": "^0.28.2",
     "eslint": "^10.10.0",
     "modern-monaco": "^0.4.2",
