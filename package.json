@@ -86,7 +86,7 @@
     "esbuild": "^0.28.2",
     "eslint": "^10.10.0",
     "modern-monaco": "^0.4.2",
-    "nuxt": "^4.5.2",
+    "nuxt": "^4.6.3",
     "reka-ui": "^2.10.4",
     "sql-formatter": "^15.8.2",
     "tailwindcss": "^4.3.3",
